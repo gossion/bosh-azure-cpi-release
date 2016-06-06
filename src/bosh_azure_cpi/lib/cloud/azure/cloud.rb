@@ -85,6 +85,7 @@ module Bosh::AzureCloud
     #                  {#detach_disk}, and {#delete_vm}
     def create_vm(agent_id, stemcell_id, resource_pool, networks, disk_locality = nil, env = nil)
       with_thread_name("create_vm(#{agent_id}, ...)") do
+        start_at = Time.now
         unless resource_pool.has_key?('instance_type')
           raise Bosh::Clouds::VMCreationFailed.new(false), "missing required cloud property `instance_type'."
         end
@@ -122,6 +123,9 @@ module Bosh::AzureCloud
           )
           registry.update_settings(instance_id, registry_settings)
 
+          end_at = Time.now
+          @logger.info("TimeElapse:create_vm:'#{instance_id}':'#{end_at - start_at}'")
+
           instance_id
         rescue => e
           @logger.error(%Q[Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}])
@@ -138,8 +142,11 @@ module Bosh::AzureCloud
     # @return [void]
     def delete_vm(instance_id)
       with_thread_name("delete_vm(#{instance_id})") do
+        start_at = Time.now
         @logger.info("Deleting instance '#{instance_id}'")
         @vm_manager.delete(instance_id)
+        end_at = Time.now
+        @logger.info("TimeElapse:delete_vm:'#{instance_id}':'#{end_at - start_at}'")
       end
     end
 
@@ -174,7 +181,10 @@ module Bosh::AzureCloud
     # @return [void]
     def reboot_vm(instance_id, options = nil)
       with_thread_name("reboot_vm(#{instance_id}, #{options})") do
+        start_at = Time.now
         @vm_manager.reboot(instance_id)
+        end_at = Time.now
+        @logger.info("TimeElapse:reboot_vm:'#{instance_id}':'#{end_at - start_at}'")
       end
     end
 
@@ -187,8 +197,11 @@ module Bosh::AzureCloud
     # @param [Hash] metadata metadata key/value pairs
     # @return [void]
     def set_vm_metadata(instance_id, metadata)
+      start_at = Time.now
       @logger.info("set_vm_metadata(#{instance_id}, #{metadata})")
       @vm_manager.set_metadata(instance_id, encode_metadata(metadata))
+      end_at = Time.now
+      @logger.info("TimeElapse:set_vm_metadata:'#{instance_id}':'#{end_at - start_at}'")
     end
 
     ##
@@ -218,6 +231,7 @@ module Bosh::AzureCloud
     # @return [String] opaque id later used by {#attach_disk}, {#detach_disk}, and {#delete_disk}
     def create_disk(size, cloud_properties, instance_id = nil)
       with_thread_name("create_disk(#{size}, #{cloud_properties})") do
+        start_at = Time.now
         storage_account_name = @azure_properties['storage_account_name']
         unless instance_id.nil?
           @logger.info("Create disk for vm #{instance_id}")
@@ -226,7 +240,12 @@ module Bosh::AzureCloud
 
         validate_disk_size(size)
 
-        @disk_manager.create_disk(storage_account_name, size/1024, cloud_properties)
+        id = @disk_manager.create_disk(storage_account_name, size/1024, cloud_properties)
+
+        end_at = Time.now
+        @logger.info("TimeElapse:create_disk:'#{instance_id}':'#{end_at - start_at}'")
+
+        id
       end
     end
 
@@ -248,6 +267,7 @@ module Bosh::AzureCloud
     # @return [void]
     def attach_disk(instance_id, disk_id)
       with_thread_name("attach_disk(#{instance_id},#{disk_id})") do
+        start_at = Time.now
         lun = @vm_manager.attach_disk(instance_id, disk_id)
 
         update_agent_settings(instance_id) do |settings|
@@ -263,6 +283,8 @@ module Bosh::AzureCloud
         end
 
         @logger.info("Attached `#{disk_id}' to `#{instance_id}', lun `#{lun}'")
+        end_at = Time.now
+        @logger.info("TimeElapse:attach_disk:'#{instance_id}':'#{disk_id}':'#{end_at - start_at}'")
       end
     end
 
@@ -272,7 +294,11 @@ module Bosh::AzureCloud
     # @return [String] snapshot id
     def snapshot_disk(disk_id, metadata = {})
       with_thread_name("snapshot_disk(#{disk_id},#{metadata})") do
+        start_at = Time.now
         snapshot_id = @disk_manager.snapshot_disk(disk_id, encode_metadata(metadata))
+
+        end_at = Time.now
+        @logger.info("TimeElapse:snapshot_disk:'#{disk_id}':'#{end_at - start_at}'")
 
         @logger.info("Take a snapshot disk '#{snapshot_id}' for '#{disk_id}'")
         snapshot_id
@@ -284,7 +310,10 @@ module Bosh::AzureCloud
     # @return [void]
     def delete_snapshot(snapshot_id)
       with_thread_name("delete_snapshot(#{snapshot_id})") do
+        start_at = Time.now
         @disk_manager.delete_snapshot(snapshot_id)
+        end_at = Time.now
+        @logger.info("TimeElapse:delete_snapshot:'#{snapshot_id}':'#{end_at - start_at}'")
       end
     end
 
@@ -294,6 +323,7 @@ module Bosh::AzureCloud
     # @return [void]
     def detach_disk(instance_id, disk_id)
       with_thread_name("detach_disk(#{instance_id},#{disk_id})") do
+        start_at = Time.now
 
         update_agent_settings(instance_id) do |settings|
           settings["disks"] ||= {}
@@ -304,6 +334,8 @@ module Bosh::AzureCloud
         @vm_manager.detach_disk(instance_id, disk_id)
 
         @logger.info("Detached `#{disk_id}' from `#{instance_id}'")
+        end_at = Time.now
+        @logger.info("TimeElapse:detach_disk:'#{instance_id}':'#{disk_id}':'#{end_at - start_at}'")
       end
     end
 
@@ -313,12 +345,15 @@ module Bosh::AzureCloud
     # other disk-related methods on the CPI
     def get_disks(instance_id)
       with_thread_name("get_disks(#{instance_id})") do
+        start_at = Time.now
         disks = []
         vm = @vm_manager.find(instance_id)
         raise Bosh::Clouds::VMNotFound, "VM '#{instance_id}' cannot be found" if vm.nil?
         vm[:data_disks].each do |disk|
           disks << disk[:name] if disk[:name] != EPHEMERAL_DISK_NAME
         end
+        end_at = Time.now
+        @logger.info("TimeElaps:get_disk:'#{instance_id}':'#{end_at - start_at}'")
         disks
       end
     end
