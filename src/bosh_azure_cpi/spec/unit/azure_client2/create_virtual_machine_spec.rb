@@ -51,7 +51,10 @@ describe Bosh::AzureCloud::AzureClient2 do
         }
       }
     end
-    let(:network_interface) { {:id => "a"} }
+    let(:network_interfaces) {[
+      {:id => "a"},
+      {:id => "a"}
+    ]}
 
     context "when token is valid, create operation is accepted and completed" do
       context "When the ephemeral disk is not nil" do
@@ -75,7 +78,7 @@ describe Bosh::AzureCloud::AzureClient2 do
             :headers => {})
 
           expect {
-            azure_client2.create_virtual_machine(vm_params, network_interface)
+            azure_client2.create_virtual_machine(vm_params, network_interfaces)
           }.not_to raise_error
         end
       end
@@ -119,7 +122,7 @@ describe Bosh::AzureCloud::AzureClient2 do
             :headers => {})
 
           expect {
-            azure_client2.create_virtual_machine(vm_params, network_interface)
+            azure_client2.create_virtual_machine(vm_params, network_interfaces)
           }.not_to raise_error
         end
       end
@@ -176,7 +179,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error /get_token - http code: 404/
       end
 
@@ -187,7 +190,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error /get_token - http code: 401. Azure authentication failed: Invalid tenant id, client id or client secret./
       end
 
@@ -205,7 +208,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error /Azure authentication failed: Token is invalid./
       end
     end
@@ -287,7 +290,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error Bosh::AzureCloud::AzureConflictError
       end
     end
@@ -313,7 +316,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error /check_completion - http code: 404/
       end
 
@@ -337,7 +340,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_virtual_machine(vm_params, network_interface)
+          azure_client2.create_virtual_machine(vm_params, network_interfaces)
         }.to raise_error /status: Cancelled/
       end
     end

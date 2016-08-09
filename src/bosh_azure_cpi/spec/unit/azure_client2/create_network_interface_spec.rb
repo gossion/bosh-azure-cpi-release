@@ -40,7 +40,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :security_group => {:id => "fake-id"}
         }
         subnet = {:id => "fake-id"}
-        load_balancer = {
+        load_balancers = [{
           :backend_address_pools => [
             {
               :id => "fake-id"
@@ -49,7 +49,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :frontend_ip_configurations => [{
             :inbound_nat_rules => [{}]
           }]
-        }
+        }]
         stub_request(:post, token_uri).to_return(
           :status => 200,
           :body => {
@@ -69,7 +69,7 @@ describe Bosh::AzureCloud::AzureClient2 do
           :headers => {})
 
         expect {
-          azure_client2.create_network_interface(nic_params, subnet, load_balancer)
+          azure_client2.create_network_interface(nic_params, subnet, load_balancers)
         }.not_to raise_error
       end
     end

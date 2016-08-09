@@ -205,6 +205,37 @@ describe Bosh::AzureCloud::Cloud do
     end
   end
 
+  context 'multiple nics' do
+    let(:instance_type) { 'Standard_D2' }
+    let(:network_spec) {
+      {
+        'network_a' => {
+          'type' => 'dynamic',
+          'cloud_properties' => {
+            'virtual_network_name' => vnet_name,
+            'subnet_name' => subnet_name
+          }
+        },
+        'network_b' => {
+          'type' => 'manual',
+          'ip' => "10.0.0.#{Random.rand(10..99)}",
+          'cloud_properties' => {
+            'virtual_network_name' => vnet_name,
+            'subnet_name' => subnet_name
+          }
+        },
+        'network_c' => {
+          'type' => 'vip',
+          'ip' => @primary_public_ip
+        }
+      }
+    }
+
+    it 'should exercise the vm lifecycle' do
+      vm_lifecycle
+    end
+  end
+
   context 'Creating multiple VMs in availability sets' do
     let(:resource_pool) {
       {

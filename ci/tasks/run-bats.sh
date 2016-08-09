@@ -48,7 +48,7 @@ export BAT_VCAP_PRIVATE_KEY=$PWD/keys/bats.pem
 export BAT_INFRASTRUCTURE=azure
 export BAT_NETWORKING=manual
 export BAT_DIRECTOR_PASSWORD=$BAT_DIRECTOR_PASSWORD
-export BAT_RSPEC_FLAGS="--tag ~multiple_manual_networks --tag ~raw_ephemeral_storage"
+export BAT_RSPEC_FLAGS="--tag ~raw_ephemeral_storage"
 
 bosh -n target $BAT_DIRECTOR
 echo Using This version of bosh:
@@ -70,6 +70,18 @@ properties:
   - name: default
     type: manual
     static_ip: $BAT_NETWORK_STATIC_IP
+    cloud_properties:
+      resource_group_name: $AZURE_GROUP_NAME
+      virtual_network_name: $AZURE_VNET_NAME_FOR_BATS
+      subnet_name: $AZURE_CF_SUBNET_NAME
+      security_group: $AZURE_DEFAULT_SECURITY_GROUP
+    cidr: $BAT_NETWORK_CIDR
+    reserved: ['$BAT_NETWORK_RESERVED_RANGE']
+    static: ['$BAT_NETWORK_STATIC_RANGE']
+    gateway: $BAT_NETWORK_GATEWAY
+  - name: second
+    type: manual
+    static_ip: $BAT_SECOND_STATIC_IP
     cloud_properties:
       resource_group_name: $AZURE_GROUP_NAME
       virtual_network_name: $AZURE_VNET_NAME_FOR_BATS
@@ -114,7 +126,7 @@ networks:
 <% properties.networks.each do |network| %>
 - name: <%= network.name %>
   type: <%= network.type %>
-  <% if network.type == 'manual' %>
+  <% if network.type == 'manual' || network.type == 'dynamic'%>
   subnets:
   - range: <%= network.cidr %>
     reserved:
@@ -126,19 +138,6 @@ networks:
       - <%= range %>
       <% end %>
     gateway: <%= network.gateway %>
-    dns: <%= p('dns').inspect %>
-    cloud_properties:
-      <% if network.cloud_properties.resource_group_name %>
-      resource_group_name: <%= network.cloud_properties.resource_group_name %>
-      <% end %>
-      virtual_network_name: <%= network.cloud_properties.virtual_network_name %>
-      subnet_name: <%= network.cloud_properties.subnet_name %>
-      <% if network.cloud_properties.security_group %>
-      security_group: <%= network.cloud_properties.security_group %>
-      <% end %>
-  <% elsif network.type == 'dynamic' %>
-  subnets:
-  - range: <%= network.cidr %>
     dns: <%= p('dns').inspect %>
     cloud_properties:
       <% if network.cloud_properties.resource_group_name %>
@@ -188,7 +187,9 @@ jobs:
     networks:
     <% properties.job_networks.each_with_index do |network, i| %>
       - name: <%= network.name %>
+        <% if i == 0 %>
         default: [dns, gateway]
+        <% end %>
       <% if network.type == 'manual' %>
         static_ips:
         <% if properties.use_static_ip %>

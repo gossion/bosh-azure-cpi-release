@@ -63,6 +63,8 @@ module Bosh::AzureCloud
     #  {"instance_type" => "Standard_D1"}
     #  {
     #    "instance_type" => "Standard_D1",
+    #    "load_balancer" => "haproxylb",
+    #    "load_balancer_internal" => "haproxylbinternal",
     #    "availability_set" => "DEA_set",
     #    "platform_update_domain_count" => 5,
     #    "platform_fault_domain_count" => 3,

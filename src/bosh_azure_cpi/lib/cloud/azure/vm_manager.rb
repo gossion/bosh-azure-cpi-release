@@ -24,13 +24,10 @@ module Bosh::AzureCloud
       os_disk = @disk_manager.os_disk(instance_id)
       ephemeral_disk = @disk_manager.ephemeral_disk(instance_id)
 
-      subnet = get_network_subnet(network_configurator)
-      network_security_group = get_network_security_group(resource_pool, network_configurator)
-      public_ip = get_public_ip(network_configurator)
-      load_balancer = get_load_balancer(resource_pool)
+      load_balancers = get_load_balancers(resource_pool)
 
-      network_interface = create_network_interface(instance_id, storage_account, network_configurator, public_ip, network_security_group, subnet, load_balancer)
-      availability_set = create_availability_set(storage_account, resource_pool, env)
+      network_interfaces = create_network_interfaces(instance_id, storage_account, resource_pool, network_configurator, load_balancers)
+      availability_set = create_availability_set(storage_account, resource_pool)
 
       vm_params = {
         :name                => instance_id,
@@ -39,13 +36,13 @@ module Bosh::AzureCloud
         :vm_size             => vm_size,
         :username            => @azure_properties['ssh_user'],
         :ssh_cert_data       => @azure_properties['ssh_public_key'],
-        :custom_data         => get_user_data(instance_id, network_configurator.dns),
+        :custom_data         => get_user_data(instance_id, network_configurator.default_dns),
         :image_uri           => stemcell_uri,
         :os_disk             => os_disk,
         :ephemeral_disk      => ephemeral_disk
       }
 
-      @azure_client2.create_virtual_machine(vm_params, network_interface, availability_set)
+      @azure_client2.create_virtual_machine(vm_params, network_interfaces, availability_set)
 
       vm_params
     rescue => e
@@ -56,7 +53,9 @@ module Bosh::AzureCloud
           @disk_manager.delete_disk(ephemeral_disk_name)
         end
       end
-      @azure_client2.delete_network_interface(network_interface[:name]) unless network_interface.nil?
+
+      delete_possible_network_interfaces(instance_id)
+
       # Replace vmSize with instance_type because only instance_type exists in the manifest
       error_message = e.inspect
       error_message = error_message.gsub!('vmSize', 'instance_type') if error_message.include?('vmSize')
@@ -71,13 +70,17 @@ module Bosh::AzureCloud
       @logger.info("delete(#{instance_id})")
 
       vm = @azure_client2.get_virtual_machine_by_name(instance_id)
-      @azure_client2.delete_virtual_machine(instance_id) unless vm.nil?
+      unless vm.nil?
+        @azure_client2.delete_virtual_machine(instance_id)
+        vm[:network_interfaces].each do |network_interface|
+          @azure_client2.delete_network_interface(network_interface[:name])
+        end
+      else
+        delete_possible_network_interfaces(instance_id)
+      end
 
       load_balancer = @azure_client2.get_load_balancer_by_name(instance_id)
       @azure_client2.delete_load_balancer(instance_id) unless load_balancer.nil?
-
-      network_interface = @azure_client2.get_network_interface_by_name(instance_id)
-      @azure_client2.delete_network_interface(instance_id) unless network_interface.nil?
 
       os_disk_name = @disk_manager.generate_os_disk_name(instance_id)
       @disk_manager.delete_disk(os_disk_name)
@@ -88,6 +91,7 @@ module Bosh::AzureCloud
       # Cleanup invalid VM status file
       storage_account_name = get_storage_account_name_from_instance_id(instance_id)
       @disk_manager.delete_vm_status_files(storage_account_name, instance_id)
+
     end
 
     def reboot(instance_id)
@@ -128,26 +132,22 @@ module Bosh::AzureCloud
       Base64.strict_encode64(JSON.dump(user_data))
     end
 
-    def get_network_subnet(network_configurator)
+    def get_network_subnet(private_network)
       subnet = nil
-      resource_group_name = @azure_properties['resource_group_name']
-      resource_group_name = network_configurator.resource_group_name unless network_configurator.resource_group_name.nil?
-      virtual_network_name = network_configurator.virtual_network_name
-      subnet_name = network_configurator.subnet_name
-      subnet = @azure_client2.get_network_subnet_by_name(resource_group_name, virtual_network_name, subnet_name)
-      cloud_error("Cannot find the subnet `#{virtual_network_name}/#{subnet_name}' in the resource group `#{resource_group_name}'") if subnet.nil?
+      resource_group_name = private_network.resource_group_name.nil? ? @azure_properties['resource_group_name'] : private_network.resource_group_name
+      subnet = @azure_client2.get_network_subnet_by_name(resource_group_name, private_network.virtual_network_name, private_network.subnet_name)
+      cloud_error("Cannot find the subnet `#{private_network.virtual_network_name}/#{private_network.subnet_name}' in the resource group `#{resource_group_name}'") if subnet.nil?
       subnet
     end
 
-    def get_network_security_group(resource_pool, network_configurator)
+    def get_network_security_group(resource_pool, private_network)
       network_security_group = nil
-      resource_group_name = @azure_properties['resource_group_name']
-      resource_group_name = network_configurator.resource_group_name unless network_configurator.resource_group_name.nil?
+      resource_group_name = private_network.resource_group_name.nil? ? @azure_properties['resource_group_name'] : private_network.resource_group_name
       security_group_name = @azure_properties["default_security_group"]
       if !resource_pool["security_group"].nil?
         security_group_name = resource_pool["security_group"]
-      elsif !network_configurator.security_group.nil?
-        security_group_name = network_configurator.security_group
+      elsif !private_network.security_group.nil?
+        security_group_name = private_network.security_group
       end
       network_security_group = @azure_client2.get_network_security_group_by_name(resource_group_name, security_group_name)
       if network_security_group.nil?
@@ -161,39 +161,75 @@ module Bosh::AzureCloud
       network_security_group
     end
 
-    def get_public_ip(network_configurator)
+    def get_public_ip(vip_network)
       public_ip = nil
-      unless network_configurator.vip_network.nil?
+      unless vip_network.nil?
         resource_group_name = @azure_properties['resource_group_name']
-        resource_group_name = network_configurator.resource_group_name('vip') unless network_configurator.resource_group_name('vip').nil?
-        public_ip = @azure_client2.list_public_ips(resource_group_name).find { |ip| ip[:ip_address] == network_configurator.public_ip }
-        cloud_error("Cannot find the public IP address `#{network_configurator.public_ip}' in the resource group `#{resource_group_name}'") if public_ip.nil?
+        resource_group_name = vip_network.resource_group_name unless vip_network.resource_group_name.nil?
+        public_ip = @azure_client2.list_public_ips(resource_group_name).find { |ip| ip[:ip_address] == vip_network.public_ip }
+        cloud_error("Cannot find the public IP address `#{vip_network.public_ip}' in the resource group `#{resource_group_name}'") if public_ip.nil?
       end
       public_ip
     end
 
-    def get_load_balancer(resource_pool)
-      load_balancer = nil
+    def get_load_balancers(resource_pool)
+      load_balancers = []
       unless resource_pool['load_balancer'].nil?
         load_balancer_name = resource_pool['load_balancer']
         load_balancer = @azure_client2.get_load_balancer_by_name(load_balancer_name)
         cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
+        load_balancers.push(load_balancer)
       end
-      load_balancer
+      unless resource_pool['load_balancer_internal'].nil?
+        load_balancer_name = resource_pool['load_balancer_internal']
+        load_balancer = @azure_client2.get_load_balancer_by_name(load_balancer_name)
+        cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
+        load_balancers.push(load_balancer)
+      end
+      load_balancers
     end
 
-    def create_network_interface(instance_id, storage_account, network_configurator, public_ip, network_security_group, subnet, load_balancer)
-      network_interface = nil
-      nic_params = {
-        :name                => instance_id,
-        :location            => storage_account[:location],
-        :private_ip          => network_configurator.private_ip,
-        :public_ip           => public_ip,
-        :security_group      => network_security_group
-      }
+    def create_network_interfaces(instance_id, storage_account, resource_pool, network_configurator, load_balancers)
+      network_interfaces = []
+      public_ip = get_public_ip(network_configurator.vip_network)
+      networks = network_configurator.networks
+      networks.each do |private_network|
+        security_group = get_network_security_group(resource_pool, private_network)
 
-      @azure_client2.create_network_interface(nic_params, subnet, AZURE_TAGS, load_balancer)
-      network_interface = @azure_client2.get_network_interface_by_name(instance_id)
+        index = networks.index(private_network)
+        nic_name = "#{instance_id}-#{index}"
+        nic_params = {
+          :name                => nic_name,
+          :location            => storage_account[:location],
+          :private_ip          => (private_network.is_a? ManualNetwork) ? private_network.private_ip : nil,
+          :public_ip           => index == 0 ? public_ip : nil,
+          :security_group      => security_group,
+          :ipconfig_name       => "ipconfig#{index}"
+        }
+
+        subnet = get_network_subnet(private_network)
+        @azure_client2.create_network_interface(nic_params, subnet, AZURE_TAGS, load_balancers)
+        network_interfaces << @azure_client2.get_network_interface_by_name(nic_name)
+      end
+      network_interfaces
+    end
+
+    def delete_possible_network_interfaces(instance_id)
+      nic0_name = "#{instance_id}-0"
+      nic0 = @azure_client2.get_network_interface_by_name(nic0_name)
+      unless nic0.nil?
+        result = @azure_client2.parse_name_from_id(nic0[:id])
+        resource_group_name = result[:resource_group_name]
+        network_interfaces_specs = @azure_client2.get_network_interfaces_specs_in_resource_group(resource_group_name)
+        unless network_interfaces_specs.nil? || network_interfaces_specs["value"].nil?
+          network_interfaces_specs["value"].each do |network_interface_spec|
+            if network_interface_spec["id"].match("^/subscriptions/(.*)/resourceGroups/(.*)/providers/Microsoft.Network/networkInterfaces/#{instance_id}(.*)$")
+              @azure_client2.delete_network_interface(network_interface_spec["name"])
+            end
+          end
+        end
+
+      end
     end
 
     def create_availability_set(storage_account, resource_pool, env)
