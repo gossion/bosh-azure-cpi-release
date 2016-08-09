@@ -6,7 +6,6 @@ module Bosh::AzureCloud
   # (optionally) Azure cloud service has a single public IP address (vip).
   #
 
-
   class NetworkConfigurator
     include Helpers
 
@@ -35,10 +34,10 @@ module Bosh::AzureCloud
 
         case network_type
           when "dynamic"
-            @networks << DynamicNetwork.new(name, network_spec)
+            @networks.push(DynamicNetwork.new(name, network_spec))
 
           when "manual"
-            @networks << ManualNetwork.new(name, network_spec)
+            @networks.push(ManualNetwork.new(name, network_spec))
 
           when "vip"
             cloud_error("More than one vip network for `#{name}'") if @vip_network
@@ -67,6 +66,5 @@ module Bosh::AzureCloud
       end
       dns
     end
-
   end
 end

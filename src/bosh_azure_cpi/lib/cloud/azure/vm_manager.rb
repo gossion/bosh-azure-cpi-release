@@ -14,12 +14,12 @@ module Bosh::AzureCloud
     end
 
     def create(uuid, storage_account, stemcell_uri, resource_pool, network_configurator, env)
+      instance_id = generate_instance_id(storage_account[:name], uuid)
       vm_size = resource_pool.fetch('instance_type', nil)
       cloud_error("missing required cloud property `instance_type'.") if vm_size.nil?
 
       @disk_manager.resource_pool = resource_pool
 
-      instance_id = generate_instance_id(storage_account[:name], uuid)
       # Raise errors if the properties are not valid before doing others.
       os_disk = @disk_manager.os_disk(instance_id)
       ephemeral_disk = @disk_manager.ephemeral_disk(instance_id)
@@ -27,7 +27,7 @@ module Bosh::AzureCloud
       load_balancers = get_load_balancers(resource_pool)
 
       network_interfaces = create_network_interfaces(instance_id, storage_account, resource_pool, network_configurator, load_balancers)
-      availability_set = create_availability_set(storage_account, resource_pool)
+      availability_set = create_availability_set(storage_account, resource_pool, env)
 
       vm_params = {
         :name                => instance_id,
@@ -54,7 +54,13 @@ module Bosh::AzureCloud
         end
       end
 
-      delete_possible_network_interfaces(instance_id)
+      if network_interfaces
+        network_interfaces.each do |network_interface|
+          @azure_client2.delete_network_interface(network_interface[:name])
+        end
+      else
+        delete_possible_network_interfaces(instance_id)
+      end
 
       # Replace vmSize with instance_type because only instance_type exists in the manifest
       error_message = e.inspect
@@ -79,9 +85,6 @@ module Bosh::AzureCloud
         delete_possible_network_interfaces(instance_id)
       end
 
-      load_balancer = @azure_client2.get_load_balancer_by_name(instance_id)
-      @azure_client2.delete_load_balancer(instance_id) unless load_balancer.nil?
-
       os_disk_name = @disk_manager.generate_os_disk_name(instance_id)
       @disk_manager.delete_disk(os_disk_name)
 
@@ -91,7 +94,6 @@ module Bosh::AzureCloud
       # Cleanup invalid VM status file
       storage_account_name = get_storage_account_name_from_instance_id(instance_id)
       @disk_manager.delete_vm_status_files(storage_account_name, instance_id)
-
     end
 
     def reboot(instance_id)
@@ -164,8 +166,7 @@ module Bosh::AzureCloud
     def get_public_ip(vip_network)
       public_ip = nil
       unless vip_network.nil?
-        resource_group_name = @azure_properties['resource_group_name']
-        resource_group_name = vip_network.resource_group_name unless vip_network.resource_group_name.nil?
+        resource_group_name = vip_network.resource_group_name.nil? ? @azure_properties['resource_group_name'] : vip_network.resource_group_name
         public_ip = @azure_client2.list_public_ips(resource_group_name).find { |ip| ip[:ip_address] == vip_network.public_ip }
         cloud_error("Cannot find the public IP address `#{vip_network.public_ip}' in the resource group `#{resource_group_name}'") if public_ip.nil?
       end
@@ -193,10 +194,8 @@ module Bosh::AzureCloud
       network_interfaces = []
       public_ip = get_public_ip(network_configurator.vip_network)
       networks = network_configurator.networks
-      networks.each do |private_network|
+      networks.each_with_index do |private_network, index|
         security_group = get_network_security_group(resource_pool, private_network)
-
-        index = networks.index(private_network)
         nic_name = "#{instance_id}-#{index}"
         nic_params = {
           :name                => nic_name,
@@ -209,7 +208,7 @@ module Bosh::AzureCloud
 
         subnet = get_network_subnet(private_network)
         @azure_client2.create_network_interface(nic_params, subnet, AZURE_TAGS, load_balancers)
-        network_interfaces << @azure_client2.get_network_interface_by_name(nic_name)
+        network_interfaces.push(@azure_client2.get_network_interface_by_name(nic_name))
       end
       network_interfaces
     end
@@ -228,7 +227,6 @@ module Bosh::AzureCloud
             end
           end
         end
-
       end
     end
 

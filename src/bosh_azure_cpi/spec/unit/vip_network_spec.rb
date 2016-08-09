@@ -5,7 +5,7 @@ describe Bosh::AzureCloud::VipNetwork do
     let(:network_spec) {
       {
         "type" => "vip",
-        "ip"=>"fake-vip", 
+        "ip"=>"fake-vip",
         "cloud_properties" => {}
       }
     }
@@ -13,7 +13,7 @@ describe Bosh::AzureCloud::VipNetwork do
     let(:with_resource_group_specth) {
       {
         "type" => "vip",
-        "ip"=>"fake-vip", 
+        "ip"=>"fake-vip",
         "cloud_properties" => {
           "resource_group_name" => "foo"
         }

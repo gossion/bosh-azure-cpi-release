@@ -126,7 +126,7 @@ networks:
 <% properties.networks.each do |network| %>
 - name: <%= network.name %>
   type: <%= network.type %>
-  <% if network.type == 'manual' || network.type == 'dynamic'%>
+  <% if network.type == 'manual'%>
   subnets:
   - range: <%= network.cidr %>
     reserved:
@@ -138,6 +138,19 @@ networks:
       - <%= range %>
       <% end %>
     gateway: <%= network.gateway %>
+    dns: <%= p('dns').inspect %>
+    cloud_properties:
+      <% if network.cloud_properties.resource_group_name %>
+      resource_group_name: <%= network.cloud_properties.resource_group_name %>
+      <% end %>
+      virtual_network_name: <%= network.cloud_properties.virtual_network_name %>
+      subnet_name: <%= network.cloud_properties.subnet_name %>
+      <% if network.cloud_properties.security_group %>
+      security_group: <%= network.cloud_properties.security_group %>
+      <% end %>
+  <% elsif network.type == 'dynamic' %>
+  subnets:
+  - range: <%= network.cidr %>
     dns: <%= p('dns').inspect %>
     cloud_properties:
       <% if network.cloud_properties.resource_group_name %>

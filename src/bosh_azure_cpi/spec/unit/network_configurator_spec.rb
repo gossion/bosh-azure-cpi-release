@@ -65,7 +65,6 @@ describe Bosh::AzureCloud::NetworkConfigurator do
       nc = Bosh::AzureCloud::NetworkConfigurator.new(network_spec)
       expect(nc.vip_network).to be_a Bosh::AzureCloud::VipNetwork
       expect(nc.networks.length).to eq(2)
-      #TBD
     end
 
     it "should not raise an error if one dynamic network is defined" do

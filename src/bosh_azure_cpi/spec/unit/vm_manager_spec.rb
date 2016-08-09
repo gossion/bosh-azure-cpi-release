@@ -79,15 +79,16 @@ describe Bosh::AzureCloud::VMManager do
       allow(client2).to receive(:get_network_security_group_by_name).
         with(MOCK_RESOURCE_GROUP_NAME, "fake-default-nsg-name").
         and_return(security_group)
-      allow(client2).to receive(:get_load_balancer_by_name).
-        with(resource_pool['load_balancer']).and_return(load_balancer)
-      allow(client2).to receive(:list_public_ips).
-        and_return([{
-              :ip_address => "public-ip"
-            }])
-      allow(client2).to receive(:get_availability_set_by_name).
-        with(resource_pool['availability_set']).
-        and_return(availability_set)
+      #allow(client2).to receive(:get_load_balancer_by_name).
+      #  with(resource_pool['load_balancer'])
+      #  .and_return(load_balancer)
+      #allow(client2).to receive(:list_public_ips).
+      #  and_return([{
+      #        :ip_address => "public-ip"
+      #      }])
+      #allow(client2).to receive(:get_availability_set_by_name).
+      #  with(resource_pool['availability_set']).
+      #  and_return(availability_set)
 
       allow(network_configurator).to receive(:vip_network).
         and_return(vip_network)
@@ -120,7 +121,7 @@ describe Bosh::AzureCloud::VMManager do
         and_return("fake-virtual-network-name")
       allow(dynamic_network).to receive(:subnet_name).
         and_return("fake-subnet-name")
-      
+
       allow(disk_manager).to receive(:delete_disk).
         and_return(nil)
       allow(disk_manager).to receive(:generate_ephemeral_disk_name).
@@ -130,14 +131,20 @@ describe Bosh::AzureCloud::VMManager do
         and_return(os_disk)
       allow(disk_manager).to receive(:ephemeral_disk).
         and_return(nil)
-      allow(disk_manager).to receive(:generate_os_disk_name).
-        and_return("fake-os-disk-name")
-      allow(disk_manager).to receive(:get_disk_uri).
-        and_return("fake-disk-uri")
+      #allow(disk_manager).to receive(:generate_os_disk_name).
+      #  and_return("fake-os-disk-name")
+      #allow(disk_manager).to receive(:get_disk_uri).
+      #  and_return("fake-disk-uri")
     end
 
     context "when instance_type is not provided" do
       let(:resource_pool) { {} }
+
+      before do
+        allow(client2).to receive(:get_network_interface_by_name).
+          with("#{instance_id}-0").
+          and_return(nil)
+      end
 
       it "should raise an error" do
         expect(client2).not_to receive(:delete_virtual_machine)
@@ -155,6 +162,13 @@ describe Bosh::AzureCloud::VMManager do
           allow(client2).to receive(:get_network_interface_by_name).
             with("#{instance_id}-0").
             and_return(nil)
+          allow(client2).to receive(:get_load_balancer_by_name).
+            with(resource_pool['load_balancer'])
+            .and_return(load_balancer)
+          allow(client2).to receive(:list_public_ips).
+            and_return([{
+              :ip_address => "public-ip"
+            }])
           allow(client2).to receive(:get_network_subnet_by_name).
             with(MOCK_RESOURCE_GROUP_NAME, "fake-virtual-network-name", "fake-subnet-name").
             and_return(nil)
@@ -171,6 +185,13 @@ describe Bosh::AzureCloud::VMManager do
           allow(client2).to receive(:get_network_interface_by_name).
             with("#{instance_id}-0").
             and_return(nil)
+          allow(client2).to receive(:get_load_balancer_by_name).
+            with(resource_pool['load_balancer'])
+            .and_return(load_balancer)
+          allow(client2).to receive(:list_public_ips).
+            and_return([{
+              :ip_address => "public-ip"
+            }])
           allow(client2).to receive(:get_network_security_group_by_name).
             with(MOCK_RESOURCE_GROUP_NAME, "fake-default-nsg-name").
             and_return(nil)
@@ -190,6 +211,13 @@ describe Bosh::AzureCloud::VMManager do
           and_return(security_group)
         allow(manual_network).to receive(:resource_group_name).
           and_return("fake-resource-group-name")
+        allow(client2).to receive(:get_load_balancer_by_name).
+          with(resource_pool['load_balancer'])
+          .and_return(load_balancer)
+        allow(client2).to receive(:list_public_ips).
+          and_return([{
+            :ip_address => "public-ip"
+          }])
       end
 
       context "when subnet is not found in the specified resource group" do
@@ -197,6 +225,7 @@ describe Bosh::AzureCloud::VMManager do
           allow(client2).to receive(:get_network_subnet_by_name).
             with("fake-resource-group-name", "fake-virtual-network-name", "fake-subnet-name").
             and_return(nil)
+          #TBD move above
           allow(client2).to receive(:get_network_interface_by_name).
             with("#{instance_id}-0").
             and_return(nil)
@@ -211,9 +240,9 @@ describe Bosh::AzureCloud::VMManager do
           allow(client2).to receive(:get_network_interface_by_name).
             with("#{instance_id}-0").
             and_return(nil)
-          allow(client2).to receive(:get_network_subnet_by_name).
-            with("fake-resource-group-name", "fake-virtual-network-name", "fake-subnet-name").
-            and_return(subnet)
+          #allow(client2).to receive(:get_network_subnet_by_name).
+          #  with("fake-resource-group-name", "fake-virtual-network-name", "fake-subnet-name").
+          #  and_return(subnet)
           allow(client2).to receive(:get_network_security_group_by_name).
             with(MOCK_RESOURCE_GROUP_NAME, "fake-default-nsg-name").
             and_return(nil)
@@ -232,8 +261,15 @@ describe Bosh::AzureCloud::VMManager do
 
     context "when public ip is not found" do
       before do
-        allow(client2).to receive(:get_network_subnet_by_name).
-          and_return(subnet)
+        #allow(client2).to receive(:get_network_subnet_by_name).
+        #  and_return(subnet)
+        allow(client2).to receive(:get_load_balancer_by_name).
+          with(resource_pool['load_balancer'])
+          .and_return(load_balancer)
+        #  allow(client2).to receive(:list_public_ips).
+        #    and_return([{
+        #      :ip_address => "public-ip"
+        #    }])
       end
  
       context "when the public ip list azure returns is empty" do
@@ -268,8 +304,8 @@ describe Bosh::AzureCloud::VMManager do
           allow(client2).to receive(:get_network_interface_by_name).
             with("#{instance_id}-0").
             and_return(nil)
-          allow(client2).to receive(:get_network_subnet_by_name).
-            and_return(subnet)
+          #allow(client2).to receive(:get_network_subnet_by_name).
+          #  and_return(subnet)
           allow(client2).to receive(:list_public_ips).
             and_return(public_ips)
           allow(vip_network).to receive(:public_ip).
@@ -289,8 +325,8 @@ describe Bosh::AzureCloud::VMManager do
         allow(client2).to receive(:get_network_interface_by_name).
           with("#{instance_id}-0").
           and_return(nil)
-        allow(client2).to receive(:get_network_subnet_by_name).
-          and_return(subnet)
+        #allow(client2).to receive(:get_network_subnet_by_name).
+        #  and_return(subnet)
       end
 
       it "should raise an error" do
@@ -308,11 +344,11 @@ describe Bosh::AzureCloud::VMManager do
     end
 
     context "when network interface is not created" do
-      let(:load_balancer) {
-        {
-          :name => "fake-lb-name"
-        }
-      }
+      #let(:load_balancer) {
+      #  {
+      #    :name => "fake-lb-name"
+      #  }
+      #}
 
       before do
         allow(client2).to receive(:get_network_subnet_by_name).
@@ -320,6 +356,13 @@ describe Bosh::AzureCloud::VMManager do
         allow(client2).to receive(:get_load_balancer_by_name).
           with(resource_pool['load_balancer']).
           and_return(load_balancer)
+          #allow(client2).to receive(:get_load_balancer_by_name).
+          #  with(resource_pool['load_balancer'])
+          #  .and_return(load_balancer)
+        allow(client2).to receive(:list_public_ips).
+          and_return([{
+            :ip_address => "public-ip"
+          }])
       end
 
       it "should raise an error" do
@@ -339,11 +382,13 @@ describe Bosh::AzureCloud::VMManager do
     end
 
     context "when availability set is not created" do
-      let(:load_balancer) {
-        {
-          :name => "fake-lb-name"
-        }
-      }
+      #let(:load_balancer) {
+      #  {
+      #    :name => "fake-lb-name"
+      #  }
+      #}
+
+      #TBD: add case for delete nics
       let(:network_interface) {
         {
           :id   => "/subscriptions/fake-subscription/resourceGroups/fake-resource-group/providers/Microsoft.Network/networkInterfaces/#{instance_id}-x",
@@ -363,6 +408,15 @@ describe Bosh::AzureCloud::VMManager do
         allow(client2).to receive(:get_load_balancer_by_name).
           with(resource_pool['load_balancer']).
           and_return(load_balancer)
+          #allow(client2).to receive(:get_load_balancer_by_name).
+          #  with(resource_pool['load_balancer'])
+          #  .and_return(load_balancer)
+         allow(client2).to receive(:list_public_ips).
+          and_return([{
+            :ip_address => "public-ip"
+          }])
+        # TBD: create return network_interfaces.
+        # TBD: add case for delete possible nics somewhere else
         allow(client2).to receive(:create_network_interface)
         allow(client2).to receive(:get_network_interface_by_name).
           with("#{instance_id}-0").
@@ -427,6 +481,13 @@ describe Bosh::AzureCloud::VMManager do
         allow(client2).to receive(:get_load_balancer_by_name).
           with(resource_pool['load_balancer']).
           and_return(load_balancer)
+          #allow(client2).to receive(:get_load_balancer_by_name).
+          #  with(resource_pool['load_balancer'])
+          #  .and_return(load_balancer)
+        allow(client2).to receive(:list_public_ips).
+          and_return([{
+            :ip_address => "public-ip"
+          }])
         allow(client2).to receive(:create_network_interface)
         allow(client2).to receive(:get_network_interface_by_name).
           and_return(network_interface)
@@ -800,7 +861,6 @@ describe Bosh::AzureCloud::VMManager do
 
     it "should delete the instances by id" do
       expect(client2).to receive(:delete_virtual_machine).with(instance_id)
-      expect(client2).to receive(:delete_load_balancer).with(instance_id)
       expect(client2).to receive(:delete_network_interface).with("fake-nic").exactly(2).times
 
       expect(disk_manager).to receive(:delete_disk).with(os_disk_name)

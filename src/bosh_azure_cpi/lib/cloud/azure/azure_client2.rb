@@ -141,13 +141,15 @@ module Bosh::AzureCloud
       url = rest_api_url(REST_API_PROVIDER_COMPUTER, REST_API_COMPUTER_VIRTUAL_MACHINES, name: vm_params[:name])
 
       networkInterfaces_params = []
-      network_interfaces.each do |network_interface|
-        networkInterfaces_params << {
-          'id' => network_interface[:id],
-          'properties' => {
-            'primary' => network_interfaces.index(network_interface) == 0 ? true : false
+      network_interfaces.each_with_index do |network_interface, index|
+        networkInterfaces_params.push(
+          {
+            'id' => network_interface[:id],
+            'properties' => {
+              'primary' => index == 0 ? true : false
+            }
           }
-        }
+        )
       end
 
       vm = {
@@ -194,7 +196,6 @@ module Bosh::AzureCloud
           }
         }
       }
-
 
       unless availability_set.nil?
         vm['properties']['availabilitySet'] = {
@@ -636,7 +637,7 @@ module Bosh::AzureCloud
     # * +:public_ip      - Hash. The public IP which the network interface is binded to.
     # * +:security_group - Hash. The network security group which the network interface is binded to.
     #
-    def create_network_interface(nic_params, subnet, tags, load_balancers = [])
+    def create_network_interface(nic_params, subnet, tags, load_balancers = nil)
       url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_NETWORK_INTERFACES, name: nic_params[:name])
       interface = {
         'name'       => nic_params[:name],
@@ -665,7 +666,7 @@ module Bosh::AzureCloud
         }
       }
 
-      unless load_balancers.empty?
+      unless load_balancers.nil? || load_balancers.empty?
         interface['properties']['ipConfigurations'][0]['properties']['loadBalancerBackendAddressPools'] = []
         interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] = []
         load_balancers.each do |load_balancer|

@@ -165,7 +165,7 @@ describe Bosh::AzureCloud::AzureClient2 do
             :headers => {})
 
           expect {
-            azure_client2.create_virtual_machine(vm_params, network_interface)
+            azure_client2.create_virtual_machine(vm_params, network_interfaces)
           }.not_to raise_error
         end
       end
@@ -242,7 +242,7 @@ describe Bosh::AzureCloud::AzureClient2 do
         it "should not raise an error" do
 
           expect {
-            azure_client2.create_virtual_machine(vm_params, network_interface)
+            azure_client2.create_virtual_machine(vm_params, network_interfaces)
           }.not_to raise_error
         end
       end
@@ -269,7 +269,7 @@ describe Bosh::AzureCloud::AzureClient2 do
 
         it "should raise an error if authentication retry fails" do
           expect {
-            azure_client2.create_virtual_machine(vm_params, network_interface)
+            azure_client2.create_virtual_machine(vm_params, network_interfaces)
           }.to raise_error /get_token - http code: 401. Azure authentication failed: Invalid tenant id, client id or client secret./
         end
       end
