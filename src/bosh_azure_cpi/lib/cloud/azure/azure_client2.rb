@@ -674,9 +674,11 @@ module Bosh::AzureCloud
             {
               'id' => load_balancer[:backend_address_pools][0][:id]
             }
-         )
-          interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] +=
-            load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules]
+          )
+          unless load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules].nil?
+            interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] +=
+              load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules]
+          end
         end
       end
 
