@@ -176,10 +176,10 @@ module Bosh::AzureCloud
       public_ip
     end
 
-    def get_load_balancer(resource_pool)
+    def get_load_balancer(resource_pool, key)
       load_balancer = nil
-      unless resource_pool['load_balancer'].nil?
-        load_balancer_name = resource_pool['load_balancer']
+      unless resource_pool[key].nil?
+        load_balancer_name = resource_pool[key]
         load_balancer = @azure_client2.get_load_balancer_by_name(load_balancer_name)
         cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
       end
@@ -188,7 +188,14 @@ module Bosh::AzureCloud
 
     def create_network_interfaces(instance_id, location, resource_pool, network_configurator)
       network_interfaces = []
-      load_balancer = get_load_balancer(resource_pool)
+      load_balancers = []
+      external_load_balancer = get_load_balancer(resource_pool, "load_balancer")
+      internal_load_balancer = get_load_balancer(resource_pool, "internal_load_balancer")
+      load_balancers.push(external_load_balancer) if external_load_balancer
+      load_balancers.push(internal_load_balancer) if internal_load_balancer
+      if load_balancers.count > network_configurator.nic_number
+        cloud_error("Load blancer number must be less than NIC number, load balancer number: `#{load_balancers.count}', NIC number: `#{network_configurator.nic_number}`")
+      end
       public_ip = get_public_ip(network_configurator.vip_network)
       if public_ip.nil? && resource_pool['assign_dynamic_public_ip'] == true
         # create dynamic public ip
@@ -205,9 +212,9 @@ module Bosh::AzureCloud
           :private_ip          => (network.is_a? ManualNetwork) ? network.private_ip : nil,
           :public_ip           => index == 0 ? public_ip : nil,
           :security_group      => security_group,
-          :ipconfig_name       => "ipconfig#{index}"
+          :ipconfig_name       => "ipconfig1"
         }
-
+        load_balancer = load_balancers.shift
         subnet = get_network_subnet(network)
         @azure_client2.create_network_interface(nic_params, subnet, AZURE_TAGS, load_balancer)
         network_interfaces.push(@azure_client2.get_network_interface_by_name(nic_name))

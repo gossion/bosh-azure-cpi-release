@@ -83,5 +83,10 @@ module Bosh::AzureCloud
       end
       @networks[0].dns
     end
+
+    # number of NICs
+    def nic_number
+      @networks.count
+    end
   end
 end

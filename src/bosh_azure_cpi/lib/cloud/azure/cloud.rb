@@ -81,7 +81,9 @@ module Bosh::AzureCloud
     #      "use_root_disk" => false, # Whether to use OS disk to store the ephemeral data
     #      "size" => 30720, # disk size in MiB
     #    },
-    #    "assign_dynamic_public_ip": true
+    #    "assign_dynamic_public_ip": true,
+    #    "load_balancer": external-haproxylb,
+    #    "internal_load_balancer": internal-haproxylb  # Additional NIC is required for internal LB
     #  }
     #
     # Sample env config:
