@@ -1,0 +1,14 @@
+properties:
+  etcd:
+    ca_cert: REPLACE_WITH_CF_ETCD_CA
+    client_cert: REPLACE_WITH_CF_ETCD_CLIENT_CERT
+    client_key: REPLACE_WITH_CF_ETCD_CLIENT_KEY
+    peer_ca_cert: REPLACE_WITH_CF_ETCD_PEER_CA
+    peer_cert: REPLACE_WITH_CF_ETCD_PEER_CERT
+    peer_key: REPLACE_WITH_CF_ETCD_PEER_KEY
+    peer_require_ssl: true
+    require_ssl: true
+    server_cert: REPLACE_WITH_CF_ETCD_SERVER_CERT
+    server_key: REPLACE_WITH_CF_ETCD_SERVER_KEY
+
+

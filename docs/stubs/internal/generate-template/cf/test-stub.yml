@@ -1,0 +1,88 @@
+jobs:
+- <<: (( merge ))
+- default_networks:
+  - name: cf1
+  instances: 1
+  lifecycle: errand
+  name: acceptance_tests
+  networks:
+  - name: cf1
+  resource_pool: small_errand
+  templates:
+  - name: acceptance-tests
+    release: cf
+  properties:
+    acceptance_tests:
+      admin_password: REPLACE_WITH_PASSWORD
+      admin_user: admin
+      api: api.REPLACE_WITH_SYSTEM_DOMAIN
+      apps_domain: REPLACE_WITH_SYSTEM_DOMAIN
+      system_domain: REPLACE_WITH_SYSTEM_DOMAIN
+      include_internet_dependent: true
+      include_logging: true
+      include_operator: true
+      include_security_groups: false
+      include_services: true
+      java_buildpack_name: java_buildpack
+      skip_diego_unsupported_tests: true
+      skip_regex: lucid64
+      skip_ssl_validation: true
+      cf_push_timeout: 500
+      default_timeout: 300
+      nodes: 1
+      enable_color: false
+- default_networks:
+  - name: cf1
+  instances: 1
+  lifecycle: errand
+  name: acceptance_tests_internetless
+  networks:
+  - name: cf1
+  resource_pool: small_errand
+  templates:
+  - name: acceptance-tests
+    release: cf
+  properties:
+    acceptance_tests:
+      admin_password: REPLACE_WITH_PASSWORD
+      admin_user: admin
+      api: api.REPLACE_WITH_SYSTEM_DOMAIN
+      apps_domain: REPLACE_WITH_SYSTEM_DOMAIN
+      system_domain: REPLACE_WITH_SYSTEM_DOMAIN
+      include_internet_dependent: false
+      include_logging: true
+      include_operator: true
+      include_security_groups: false
+      include_services: true
+      java_buildpack_name: java_offline_buildpack
+      skip_diego_unsupported_tests: true
+      skip_regex: lucid64
+      skip_ssl_validation: true
+      cf_push_timeout: 500
+      default_timeout: 300
+      nodes: 1
+      enable_color: false
+- default_networks:
+  - name: cf1
+  instances: 1
+  lifecycle: errand
+  name: smoke_tests
+  networks:
+  - name: cf1
+  properties: {}
+  resource_pool: small_errand
+  templates:
+  - name: smoke-tests
+    release: cf
+  properties:
+    smoke_tests:
+      api: api.REPLACE_WITH_SYSTEM_DOMAIN
+      apps_domain: REPLACE_WITH_SYSTEM_DOMAIN
+      ginkgo_opts: null
+      org: smoke_test_org
+      password: REPLACE_WITH_PASSWORD
+      skip_ssl_validation: true
+      space: smoke_test_space
+      user: admin
+      enable_windows_tests: false
+

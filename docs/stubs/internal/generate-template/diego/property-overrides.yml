@@ -1,0 +1,64 @@
+property_overrides:
+  auctioneer:
+    log_level: debug
+    ca_cert: REPLACE_WITH_DIEGO_CA
+    client_cert: REPLACE_WITH_AUCTIONEER_CLIENT_CERT
+    client_key: REPLACE_WITH_AUCTIONEER_CLIENT_KEY
+    server_cert: REPLACE_WITH_AUCTIONEER_SERVER_CERT
+    server_key: REPLACE_WITH_AUCTIONEER_SERVER_KEY
+  bbs:
+    active_key_label: bbs_key_a
+    ca_cert: REPLACE_WITH_DIEGO_CA
+    client_cert: REPLACE_WITH_BBS_CLIENT_CERT
+    client_key: REPLACE_WITH_BBS_CLIENT_KEY
+    encryption_keys:
+    - label: bbs_key_a
+      passphrase: REPLACE_WITH_A_SECURE_PASSPHRASE
+    log_level: debug
+    require_ssl: true
+    server_cert: REPLACE_WITH_BBS_SERVER_CERT
+    server_key: REPLACE_WITH_BBS_SERVER_KEY
+  cc_uploader:
+    log_level: debug
+  converger:
+    log_level: debug
+  etcd:
+    ca_cert: REPLACE_WITH_DIEGO_CA
+    client_cert: REPLACE_WITH_DIEGO_ETCD_CLIENT_CERT
+    client_key: REPLACE_WITH_DIEGO_ETCD_CLIENT_KEY
+    election_timeout_in_milliseconds: 2000
+    heartbeat_interval_in_milliseconds: 200
+    log_level: debug
+    peer_ca_cert: REPLACE_WITH_DIEGO_ETCD_PEER_CA
+    peer_cert: REPLACE_WITH_DIEGO_ETCD_PEER_CERT
+    peer_key: REPLACE_WITH_DIEGO_ETCD_PEER_KEY
+    peer_require_ssl: true
+    require_ssl: true
+    server_cert: REPLACE_WITH_DIEGO_ETCD_SERVER_CERT
+    server_key: REPLACE_WITH_DIEGO_ETCD_SERVER_KEY
+  executor:
+    log_level: debug
+  file_server:
+    log_level: debug
+  garden:
+    log_level: debug
+  nsync:
+    log_level: debug
+  route_emitter:
+    log_level: debug
+  skip_cert_verify: true
+  ssh_proxy:
+    enable_cf_auth: true
+    host_key: REPLACE_WITH_SSH_PROXY_HOST_KEY
+  stager:
+    log_level: debug
+  tps:
+    log_level: debug
+  rep:
+    ca_cert: REPLACE_WITH_DIEGO_CA
+    client_cert: REPLACE_WITH_REP_CLIENT_CERT
+    client_key: REPLACE_WITH_REP_CLIENT_KEY
+    log_level: debug
+    require_tls: true
+    server_cert: REPLACE_WITH_REP_SERVER_CERT
+    server_key: REPLACE_WITH_REP_SERVER_KEY

@@ -1,0 +1,11 @@
+sql_overrides:
+  bbs:
+    db_driver: postgres
+    db_host: (( jobs.postgres_z1.networks.cf1.static_ips.[0] ))
+    db_port: 5524
+    db_username: diego
+    db_password: REPLACE_WITH_DIEGODB_PASSWORD
+    db_schema: diego
+
+jobs: (( merge ))
+properties: (( merge ))

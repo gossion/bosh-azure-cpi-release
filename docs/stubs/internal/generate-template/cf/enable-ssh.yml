@@ -1,0 +1,20 @@
+properties:
+  <<: (( merge ))
+  app_ssh:
+    <<: (( merge ))
+    host_key_fingerprint: REPLACE_WITH_HOST_KEY_FINGERPRINT
+    oauth_client_id: ssh-proxy
+  cc:
+    <<: (( merge ))
+    allow_app_ssh_access: true
+  uaa:
+    <<: (( merge ))
+    clients:
+      <<: (( merge ))
+      ssh-proxy:
+        authorized-grant-types: authorization_code
+        autoapprove: true
+        override: true
+        redirect-uri: /login
+        scope: openid,cloud_controller.read,cloud_controller.write,cloud_controller.admin
+        secret: REPLACE_WITH_SSH_PROXY_SECRET
