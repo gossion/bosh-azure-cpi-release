@@ -379,11 +379,17 @@ module Bosh::AzureCloud
       public_ip
     end
 
-    def get_load_balancer(resource_pool)
+    def get_load_balancer(resource_group_name, resource_pool)
       load_balancer = nil
       unless resource_pool['load_balancer'].nil?
         load_balancer_name = resource_pool['load_balancer']
-        load_balancer = @azure_client2.get_load_balancer_by_name(load_balancer_name)
+        # The resource group which the load balancer belongs to can be specified in networks and global configuration (ordered by priority)
+        load_balancer = @azure_client2.get_load_balancer_by_name(resource_group_name, load_balancer_name)
+        default_resource_group_name = @azure_properties['resource_group_name']
+        if load_balancer.nil? && resource_group_name != default_resource_group_name
+          @logger.info("Cannot find the load balancer `#{load_balancer_name}' in the resource group `#{resource_group_name}', trying to search it in the default resource group `#{default_resource_group_name}'")
+          load_balancer = @azure_client2.get_load_balancer_by_name(default_resource_group_name, load_balancer_name)
+        end
         cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
       end
       load_balancer
@@ -433,7 +439,7 @@ module Bosh::AzureCloud
         if index == 0
           nic_params[:public_ip] = public_ip
           nic_params[:tags] = primary_nic_tags
-          nic_params[:load_balancer] = get_load_balancer(resource_pool)
+          nic_params[:load_balancer] = get_load_balancer(network.resource_group_name, resource_pool)
           nic_params[:application_gateway] = get_application_gateway(resource_pool)
         else
           nic_params[:public_ip] = nil

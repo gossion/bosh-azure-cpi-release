@@ -1219,18 +1219,19 @@ module Bosh::AzureCloud
     # Network/Load Balancer
 
     # Create a load balancer
-    # @param [String] name         - Name of load balancer.
-    # @param [Hash] public_ip      - Public IP to associate.
-    # @param [Hash] tags           - Tags of load balancer.
-    # @param [Array] tcp_endpoints - TCP endpoints of load balancer.
-    # @param [Array] udp_endpoints - UDP endpoints of load balancer.
+    # @param [String] resource_group_name - name of resource group.
+    # @param [String] name                - Name of load balancer.
+    # @param [Hash] public_ip             - Public IP to associate.
+    # @param [Hash] tags                  - Tags of load balancer.
+    # @param [Array] tcp_endpoints        - TCP endpoints of load balancer.
+    # @param [Array] udp_endpoints        - UDP endpoints of load balancer.
     #
     # @return [Boolean]
     #
     # @See https://docs.microsoft.com/en-us/rest/api/loadbalancer/create-or-update-a-load-balancer
     #
-    def create_load_balancer(name,  public_ip, tags, tcp_endpoints = [], udp_endpoints = [])
-      url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, name: name)
+    def create_load_balancer(resource_group_name, name,  public_ip, tags, tcp_endpoints = [], udp_endpoints = [])
+      url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, resource_group_name: resource_group_name, name: name)
       load_balancer = {
         'name'       => name,
         'location'   => public_ip[:location],
@@ -1251,7 +1252,7 @@ module Bosh::AzureCloud
         }
       }
 
-      frontend_ip_configuration_id = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, name: name, others: 'frontendIPConfigurations/LBFE')
+      frontend_ip_configuration_id = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, resource_group_name: resource_group_name, name: name, others: 'frontendIPConfigurations/LBFE')
       tcp_endpoints.each do |endpoint|
         ports = endpoint.split(':')
         inbound_nat_rules = {
@@ -1289,14 +1290,15 @@ module Bosh::AzureCloud
     end
 
     # Get a load balancer's information
-    # @param [String] name - Name of load balancer.
+    # @param [String] resource_group_name - name of resource group.
+    # @param [String] name                - Name of load balancer.
     #
     # @return [Hash]
     #
     # @See https://docs.microsoft.com/en-us/rest/api/loadbalancer/get-information-about-a-load-balancer
     #
-    def get_load_balancer_by_name(name)
-      url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, name: name)
+    def get_load_balancer_by_name(resource_group_name, name)
+      url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_LOAD_BALANCERS, resource_group_name: resource_group_name, name: name)
       get_load_balancer(url)
     end
 
@@ -2013,7 +2015,7 @@ module Bosh::AzureCloud
         unless ip_configuration_properties['loadBalancerBackendAddressPools'].nil?
           if recursive
             names = parse_name_from_id(ip_configuration_properties['loadBalancerBackendAddressPools'][0]['id'])
-            interface[:load_balancer] = get_load_balancer_by_name(names[:resource_name])
+            interface[:load_balancer] = get_load_balancer_by_name(names[:resource_group_name], names[:resource_name])
           else
             interface[:load_balancer] = {:id => ip_configuration_properties['loadBalancerBackendAddressPools'][0]['id']}
           end
