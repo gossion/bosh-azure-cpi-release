@@ -63,6 +63,8 @@ require 'cloud/azure/disk_id'
 
 require 'cloud/azure/instance_type_mapper'
 
+require 'cloud/azure/telemetry'
+
 module Bosh
   module Clouds
     Azure = Bosh::AzureCloud::Cloud
