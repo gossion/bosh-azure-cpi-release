@@ -24,10 +24,10 @@ module Bosh::AzureCloud
 
       @use_managed_disks = azure_properties['use_managed_disks']
 
+      init_cpi_lock_dir
       Bosh::AzureCloud::Telemetry.new(azure_properties, @logger, "initialize").monitor() do
         init_registry
         init_azure
-        init_cpi_lock_dir
       end
     end
 
@@ -40,7 +40,10 @@ module Bosh::AzureCloud
     # @return [String] opaque id later used by {#create_vm} and {#delete_stemcell}
     def create_stemcell(image_path, stemcell_properties)
       with_thread_name("create_stemcell(#{image_path}, #{stemcell_properties})") do
-        Bosh::AzureCloud::Telemetry.new(azure_properties, @logger, "create_stemcell").monitor() do
+        extras = {
+          "stemcell" => "#{stemcell_properties.fetch("name", "unknown_name")}-#{stemcell_properties.fetch("version", "unknown_version")}"
+        }
+        Bosh::AzureCloud::Telemetry.new(azure_properties, @logger, "create_stemcell").monitor(extras) do
           if has_light_stemcell_property?(stemcell_properties)
             @light_stemcell_manager.create_stemcell(stemcell_properties)
           elsif @use_managed_disks
@@ -137,7 +140,7 @@ module Bosh::AzureCloud
       # env may contain credentials so we must not log it
       @logger.info("create_vm(#{agent_id}, #{stemcell_id}, #{resource_pool}, #{networks}, #{disk_locality}, ...)")
       with_thread_name("create_vm(#{agent_id}, ...)") do
-        Bosh::AzureCloud::Telemetry.new(azure_properties, @logger, "create_vm").monitor({"vm_size" => resource_pool['instance_type']}) do
+        Bosh::AzureCloud::Telemetry.new(azure_properties, @logger, "create_vm").monitor({"instance_type" => resource_pool["instance_type"]}) do
           # These resources should be in the same location for a VM: VM, NIC, disk(storage account or managed disk).
           # And NIC must be in the same location with VNET, so CPI will use VNET's location as default location for the resources related to the VM.
           network_configurator = NetworkConfigurator.new(azure_properties, networks)
