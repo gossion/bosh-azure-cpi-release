@@ -9,7 +9,7 @@ module Bosh::AzureCloud
       @wire_client = Bosh::AzureCloud::WireClient.new(logger)
     end
 
-    # Collect events and send them to Wire Server
+    # Collect events and send them to wireserver
     # Only one instance is allow to process the events at the same time.
     # Once this function get the lock, the instance will be responsible to handle all
     # existed event logs generated prior to and during the time when it hanles the events;
@@ -73,16 +73,20 @@ module Bosh::AzureCloud
       Bosh::AzureCloud::TelemetryEventList.new(event_list)
     end
 
-    # Send the events to Wire Server
+    # Send the events to wireserver
     #
     # @params [TelemetryEventList] event_list - events to be sent
     #
     def send_events(event_list)
-      #@logger.debug("[GGGGGGGGGGG] send_events #{event_list.format_data_for_wire_server}") # confirm message data is a JSON or a string
+      filename = "/tmp/cpi-event-my-event-data"
+      File.open(filename, 'w') do |file|
+        file.write(event_list.format_data_for_wire_server)
+      end
       @wire_client.post_data(event_list.format_data_for_wire_server)
     end
 
     def get_last_post_timestamp()
+      #TODO: remove if failed to parse
       ignore_exception do
         Time.parse(File.read(CPI_EVENT_HANDLER_LAST_POST_TIMESTAMP))
       end

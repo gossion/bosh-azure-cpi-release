@@ -1,7 +1,5 @@
 module Bosh::AzureCloud
   class WireClient
-    attr_reader :endpoint
-
     TELEMETRY_URI_FORMAT = "http://%{endpoint}/machine?comp=telemetrydata"
     TELEMETRY_HEADER = {'Content-Type' => 'text/xml;charset=utf-8', 'x-ms-version' => '2012-11-30', 'x-ms-agent-name' => 'WALinuxAgent'}
 
@@ -13,7 +11,7 @@ module Bosh::AzureCloud
 
     LEASE_PATHS = {
       'Ubuntu' => '/var/lib/dhcp/dhclient.*.leases',
-      'Centos' => '/var/lib/dhclient/dhclient-*.leases',
+      'CentOS' => '/var/lib/dhclient/dhclient-*.leases',
       nil      => '/var/lib/dhcp/dhclient.*.leases'
     }
 
@@ -22,20 +20,28 @@ module Bosh::AzureCloud
       @endpoint = get_endpoint()
     end
 
+    # Post data to wireserver
+    #
+    # @param [String] event_data - Data formatted as XML string
+    #
     def post_data(event_data)
       #https://github.com/Azure/WALinuxAgent/blob/f52a9a546d9005ad15ec1af47aeaa46169374dbf/azurelinuxagent/common/protocol/wire.py#L1004
       unless @endpoint.nil?
         uri = URI.parse(TELEMETRY_URI_FORMAT % {:endpoint => @endpoint})
+        @logger.debug("[Telemetry] Will post event_data: #{event_data}")
         begin
-          @logger.debug("YYYYYYYYY. event_data: #{event_data}, TELEMETRY_HEADER: #{TELEMETRY_HEADER}")
-          #res = Net::HTTP.post(uri, event_data, TELEMETRY_HEADER)
-          request = Net::HTTP::Post.new uri.path
+          # TODO: remove proxy
+          #
+          request = Net::HTTP::Post.new uri
           request.body = event_data
-          request.content_type = 'text/xml;charset=utf-8'
-          request['x-ms-version'] = '2012-11-30'
-          request['x-ms-agent-name'] = 'WALinuxAgent'
+          TELEMETRY_HEADER.keys.each do |key|
+            request[key] = TELEMETRY_HEADER[key]
+          end
           res = Net::HTTP.new(uri.host, uri.port).start { |http| http.request request }
-          @logger.debug("XXXXXXXXXXXXXXXXXXres: #{res.code}, #{res.body}, \n INSPECT: #{res.inspect}}")
+          @logger.debug("[Telemetry] POST response - code: #{res.code}\nbody:#{res.body}")
+          if res.code.to_i != 200
+            #TODO: retry
+          end
         rescue => e
           #retry
           @logger.warn("[Telemetry] Failed to post data to uri #{uri}. Error: \n#{e.inspect}\n#{e.backtrace.join("\n")}")
@@ -52,8 +58,8 @@ module Bosh::AzureCloud
       os = nil
       if File.exists?("/etc/lsb-release")
         os = "Ubuntu" if File.read("/etc/lsb-release").include?("Ubuntu")
-      else
-        # TODO: for CentOS
+      elsif File.exists?("/etc/centos-release")
+        os = "CentOS" if File.read("/etc/centos-release").include?("CentOS")
       end
 
       get_endpoint_from_leases_path(LEASE_PATHS[os])
@@ -103,25 +109,6 @@ module Bosh::AzureCloud
 
       @logger.warn("Can't find endpoint from leases_path #{leases_path}")
       nil
-    end
-
-    def post_xml(xml_string)
-      #uri = URI.parse url_string
-      #request = Net::HTTP::Post.new uri.path
-      #request.body = xml_string
-      #request.content_type = 'text/xml'
-      #response = Net::HTTP.new(uri.host, uri.port).start { |http| http.request request }
-      #response.body
-
-      #https = Net::HTTP.new(uri.host,uri.port)
-      #https.use_ssl = true
-      #req = Net::HTTP::Post.new(uri.path, header)
-      #req.body = data.to_json
-      #res = https.request(req)
-      #
-      #puts "Response #{res.code} #{res.message}: #{res.body}"
-
-      # TODO: retry
     end
 
     def get_ip_from_lease_value(fallback_lease_value)

@@ -3,24 +3,11 @@ module Bosh::AzureCloud
     attr_reader :name
     attr_accessor :value
 
-    PARAM_XML_FORMAT = "<Param Name=\"%{name}\" Value=\"%{value}\" T=\"%{type}\" />"
+    PARAM_XML_FORMAT = "<Param Name=\"%{name}\" Value=%{value} T=\"%{type}\" />"
+
     def initialize(name, value)
       @name = name
       @value = value
-      @type = case value
-              when String
-                "mt:wstr"
-              when Integer
-                "mt:uint64"
-              when Float
-                "mt:uint64"
-              when TrueClass
-                "mt:bool"
-              when FalseClass
-                "mt:bool"
-              else
-                "mt:wstr"
-              end
     end
 
     def self.parse_hash(hash)
@@ -37,7 +24,35 @@ module Bosh::AzureCloud
 
     # TODO: check @value.to_s for message
     def to_xml_string
-      PARAM_XML_FORMAT % {:name => @name, :value => @value, :type => @type}
+      value = @value.is_a?(Hash) ? @value.to_json : @value
+      ret = PARAM_XML_FORMAT % {:name => @name, :value => value.to_s.encode(:xml => :attr), :type => type_of(@value)}
+      File.open("/tmp/cpi-event-my-event-data-params", 'a') do |file|
+        file.write("#{@value.class}\n")
+        file.write("#{@value}\n")
+        file.write("#{ret}\n")
+      end
+      ret
+    end
+
+    private
+
+    def type_of(value)
+      case value
+      when String
+        "mt:wstr"
+      when Integer
+        "mt:uint64"
+      when Float
+        "mt:uint64"
+      when TrueClass
+        "mt:bool"
+      when FalseClass
+        "mt:bool"
+      when Hash
+        "mt:wstr"
+      else
+        "mt:wstr"
+      end
     end
   end
 
@@ -83,7 +98,7 @@ module Bosh::AzureCloud
     def self.parse_hash(hash)
       parameters = []
       hash["parameters"].each do |p|
-        parameters.push(TelemetryEventParam.parse_hash(p))
+        parameters.push(TelemetryEventParam.parse_hash(p)) ##BUG here
       end
       new(hash["eventId"], hash["providerId"], parameters: parameters)
     end

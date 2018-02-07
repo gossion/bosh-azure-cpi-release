@@ -33,6 +33,7 @@ module Bosh::AzureCloud
 
       message_value = {
         "msg" => "Successed",
+        "change" => "value.encode :xml => :attr",
         "subscription_id" => @azure_properties['subscription_id']
       }
 
@@ -52,7 +53,7 @@ module Bosh::AzureCloud
       ensure
         end_at = Time.now
         event_param_duration.value = (end_at - start_at) * 1000.0 # miliseconds
-        event_param_message.value = message_value.to_json.to_s
+        event_param_message.value = message_value
 
         @event.add_param(event_param_operation_success)
         @event.add_param(event_param_message)
