@@ -63,6 +63,7 @@ require 'cloud/azure/disk_id'
 
 require 'cloud/azure/instance_type_mapper'
 
+require 'cloud/azure/version'
 require 'cloud/azure/telemetry/telemetry_manager'
 require 'cloud/azure/telemetry/telemetry_event'
 require 'cloud/azure/telemetry/telemetry_event_handler'

@@ -9,6 +9,17 @@ chruby ${RUBY_VERSION}
 semver=`cat version-semver/number`
 
 pushd bosh-cpi-src > /dev/null
+  # Replace the version with semantic one in source code
+  # The version will be added in the release tarball, but not updated to upstream
+  version_file='src/bosh_azure_cpi/lib/cloud/azure/version.rb'
+  cat > $version_file << EOF
+module Bosh
+  module AzureCloud
+    VERSION = '$semver'.freeze
+  end
+end
+EOF
+
   echo "running unit tests"
   pushd src/bosh_azure_cpi > /dev/null
     bundle install
@@ -22,5 +33,7 @@ pushd bosh-cpi-src > /dev/null
   cpi_release_name="bosh-azure-cpi"
 
   echo "building CPI release..."
-  bosh create-release --name $cpi_release_name --version $semver --tarball ../candidate/$cpi_release_name-$semver.tgz
+  bosh create-release --name $cpi_release_name --version $semver --tarball ../candidate/$cpi_release_name-$semver.tgz --force
+  # Revert the change of versioning file
+  git checkout $version_file
 popd > /dev/null

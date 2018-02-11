@@ -36,6 +36,9 @@ describe Bosh::AzureCloud::Cloud do
     before do
       allow(Bosh::AzureCloud::InstanceId).to receive(:parse).
         and_return(instance_id_object)
+
+      expect(telemetry_manager).to receive(:monitor).
+        with("get_disks").and_call_original
     end
 
     context 'when the instance has data disks' do

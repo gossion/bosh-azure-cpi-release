@@ -20,6 +20,9 @@ describe Bosh::AzureCloud::Cloud do
         and_return(resource_group_name)
       allow(instance_id_object).to receive(:vm_name).
         and_return(vm_name)
+      expect(telemetry_manager).to receive(:monitor).
+        with("create_disk", {"disk_size"=>disk_size}).
+        and_call_original
     end
 
     context 'validating disk size' do
