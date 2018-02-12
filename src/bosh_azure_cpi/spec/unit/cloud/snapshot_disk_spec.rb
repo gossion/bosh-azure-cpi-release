@@ -25,7 +25,7 @@ describe Bosh::AzureCloud::Cloud do
       allow(disk_id_object).to receive(:caching).
         and_return(caching)
 
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("snapshot_disk").and_call_original
     end
 

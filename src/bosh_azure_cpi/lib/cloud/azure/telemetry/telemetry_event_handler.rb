@@ -66,9 +66,14 @@ module Bosh::AzureCloud
       event_files = Dir["#{CPI_EVENTS_DIR}/*.tld"]
       event_files = event_files[0...max] if event_files.length > max
       event_files.each do |file|
-        hash = JSON.parse(File.read(file))
-        event_list << Bosh::AzureCloud::TelemetryEvent.parse_hash(hash)
-        File.delete(file)
+        begin
+          hash = JSON.parse(File.read(file))
+          event_list << Bosh::AzureCloud::TelemetryEvent.parse_hash(hash)
+        rescue => e
+          @logger.warn("")
+        ensure
+          File.delete(file)
+        end
       end
       Bosh::AzureCloud::TelemetryEventList.new(event_list)
     end
@@ -82,7 +87,7 @@ module Bosh::AzureCloud
       File.open(filename, 'w') do |file|
         file.write(event_list.format_data_for_wire_server)
       end
-      @wire_client.post_data(event_list.format_data_for_wire_server)
+      #@wire_client.post_data(event_list.format_data_for_wire_server)
     end
 
     def get_last_post_timestamp()

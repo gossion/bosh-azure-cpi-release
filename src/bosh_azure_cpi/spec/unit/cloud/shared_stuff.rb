@@ -47,7 +47,7 @@ shared_context "shared stuff" do
       and_return(instance_type_mapper)
     allow(Bosh::AzureCloud::TelemetryManager).to receive(:new).
       and_return(telemetry_manager)
-    expect(telemetry_manager).to receive(:monitor).
+    allow(telemetry_manager).to receive(:monitor).
       with("initialize").and_call_original
   end
 end

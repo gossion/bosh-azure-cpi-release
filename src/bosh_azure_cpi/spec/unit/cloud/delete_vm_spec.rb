@@ -10,7 +10,7 @@ describe Bosh::AzureCloud::Cloud do
     let(:instance_id_object) { instance_double(Bosh::AzureCloud::InstanceId) }
 
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("delete_vm").and_call_original
     end
 

@@ -17,7 +17,7 @@ describe Bosh::AzureCloud::Cloud do
       allow(Bosh::AzureCloud::InstanceId).to receive(:parse).
         and_return(instance_id_object)
 
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("detach_disk").and_call_original
     end
 

@@ -9,7 +9,7 @@ describe Bosh::AzureCloud::Cloud do
     let(:disk_id_object) { instance_double(Bosh::AzureCloud::DiskId) }
 
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("delete_disk").and_call_original
     end
 

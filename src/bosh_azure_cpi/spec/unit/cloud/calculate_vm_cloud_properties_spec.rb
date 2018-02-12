@@ -6,7 +6,7 @@ describe Bosh::AzureCloud::Cloud do
 
   describe '#calculate_vm_cloud_properties' do
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with('calculate_vm_cloud_properties').and_call_original
     end
 

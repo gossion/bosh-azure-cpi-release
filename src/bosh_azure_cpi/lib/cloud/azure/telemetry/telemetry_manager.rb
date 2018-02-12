@@ -9,10 +9,6 @@ module Bosh::AzureCloud
     def initialize(azure_properties, logger)
       @azure_properties = azure_properties
       @logger = logger
-      @will_send_events = true
-
-      @event_param_name = Bosh::AzureCloud::TelemetryEventParam.new("Name", CPI_TELEMETRY_NAME)
-      @event_param_version = Bosh::AzureCloud::TelemetryEventParam.new("Version", Bosh::AzureCloud::VERSION)
     end
 
     # Monitor the status of a block
@@ -23,6 +19,8 @@ module Bosh::AzureCloud
     def monitor(operation, extras = {})
       error_raised = false
 
+      event_param_name = Bosh::AzureCloud::TelemetryEventParam.new("Name", CPI_TELEMETRY_NAME)
+      event_param_version = Bosh::AzureCloud::TelemetryEventParam.new("Version", Bosh::AzureCloud::VERSION)
       event_param_operation = Bosh::AzureCloud::TelemetryEventParam.new("Operation", operation)
       event_param_operation_success = Bosh::AzureCloud::TelemetryEventParam.new("OperationSuccess", true)
       event_param_message = Bosh::AzureCloud::TelemetryEventParam.new("Message", "")
@@ -30,7 +28,6 @@ module Bosh::AzureCloud
 
       message_value = {
         "msg" => "Successed",
-        "change" => "value.encode :xml => :attr",
         "subscription_id" => @azure_properties['subscription_id']
       }
 
@@ -57,8 +54,8 @@ module Bosh::AzureCloud
         # No need to report event for "initialize" if it initialized without an error
         if !error_raised && operation != "initialize"
           event = Bosh::AzureCloud::TelemetryEvent.new(EVENT_ID, PROVIDER_ID)
-          event.add_param(@event_param_name)
-          event.add_param(@event_param_version)
+          event.add_param(event_param_name)
+          event.add_param(event_param_version)
           event.add_param(event_param_operation)
           event.add_param(event_param_operation_success)
           event.add_param(event_param_message)
@@ -74,14 +71,14 @@ module Bosh::AzureCloud
       begin
         filename = "/tmp/cpi-event-#{SecureRandom.uuid}.tld"
         File.open(filename, 'w') do |file|
-          file.write(event.to_json_string)
+          file.write(event.to_json)
         end
         Dir.mkdir(CPI_EVENTS_DIR) unless File.exists?(CPI_EVENTS_DIR)
         stdout, stderr, status = Open3.capture3("mv #{filename} #{CPI_EVENTS_DIR}")
         if status != 0
-          logger.warn("[Telemetry] Failed to move #{filename} to #{CPI_EVENTS_DIR}, error: #{stderr}")
+          @logger.warn("[Telemetry] Failed to move #{filename} to #{CPI_EVENTS_DIR}, error: #{stderr}")
         else
-          # trigger event handler to send the event
+          # trigger event handler to send the event in a different process
           pid = fork {
             Bosh::AzureCloud::TelemetryEventHandler.new(@logger).collect_and_send_events()
           }

@@ -6,7 +6,7 @@ describe Bosh::AzureCloud::Cloud do
 
   describe "#delete_snapshot" do
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("delete_snapshot").and_call_original
     end
 

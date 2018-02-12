@@ -60,7 +60,7 @@ describe Bosh::AzureCloud::Cloud do
       allow(vm_manager).to receive(:find).
         and_return(vm)
 
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("attach_disk").and_call_original
     end
 

@@ -32,7 +32,7 @@ describe Bosh::AzureCloud::Cloud do
       allow(client2).to receive(:get_virtual_network_by_name).
         with(default_resource_group_name, virtual_network_name).
         and_return(vnet)
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with('create_vm', {'instance_type' => 'fake-vm-size'}).
         and_call_original
     end

@@ -12,7 +12,7 @@ describe Bosh::AzureCloud::Cloud do
       allow(Bosh::AzureCloud::DiskId).to receive(:parse).
         and_return(disk_id_object)
 
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("has_disk?").and_call_original
     end
 

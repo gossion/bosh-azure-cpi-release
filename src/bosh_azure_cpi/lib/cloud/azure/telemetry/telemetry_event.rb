@@ -1,7 +1,6 @@
 module Bosh::AzureCloud
   class TelemetryEventParam
-    attr_reader :name
-    attr_accessor :value
+    attr_writer :value
 
     PARAM_XML_FORMAT = "<Param Name=\"%{name}\" Value=%{value} T=\"%{type}\" />"
 
@@ -18,20 +17,13 @@ module Bosh::AzureCloud
       {"name" => @name, "value" => @value}
     end
 
-    def to_json_string
-      to_hash.to_json.to_s
+    def to_json
+      to_hash.to_json
     end
 
-    # TODO: check @value.to_s for message
-    def to_xml_string
+    def to_xml
       value = @value.is_a?(Hash) ? @value.to_json : @value
-      ret = PARAM_XML_FORMAT % {:name => @name, :value => value.to_s.encode(:xml => :attr), :type => type_of(@value)}
-      File.open("/tmp/cpi-event-my-event-data-params", 'a') do |file|
-        file.write("#{@value.class}\n")
-        file.write("#{@value}\n")
-        file.write("#{ret}\n")
-      end
-      ret
+      PARAM_XML_FORMAT % {:name => @name, :value => value.to_s.encode(:xml => :attr), :type => type_of(@value)}
     end
 
     private
@@ -98,7 +90,7 @@ module Bosh::AzureCloud
     def self.parse_hash(hash)
       parameters = []
       hash["parameters"].each do |p|
-        parameters.push(TelemetryEventParam.parse_hash(p)) ##BUG here
+        parameters.push(TelemetryEventParam.parse_hash(p))
       end
       new(hash["eventId"], hash["providerId"], parameters: parameters)
     end
@@ -124,23 +116,23 @@ module Bosh::AzureCloud
       }
     end
 
-    def to_json_string
-      to_hash.to_json.to_s
+    def to_json
+      to_hash.to_json
     end
 
-    def to_xml_string
+    def to_xml
       params_xml = ""
       @parameters.each do |param|
-        params_xml += param.to_xml_string
+        params_xml += param.to_xml
       end
       EVENT_XML_FORMAT % {:provider_id => @provider_id, :event_id => @event_id, :params_xml => params_xml}
     end
 
     # this function is only used in TelemetryEventList which will group the events by provider_id
-    def to_xml_string_without_provider
+    def to_xml_without_provider
       params_xml = ""
       @parameters.each do |param|
-        params_xml += param.to_xml_string
+        params_xml += param.to_xml
       end
       EVENT_XML_WITHOUT_PROVIDER_FORMAT % {:event_id => @event_id, :params_xml => params_xml}
     end
@@ -154,12 +146,12 @@ module Bosh::AzureCloud
     end
 
     def format_data_for_wire_server
-      TELEMETRY_XML_FORMAT % {:events_string => to_xml_string}
+      TELEMETRY_XML_FORMAT % {:events_string => to_xml}
     end
 
     private
 
-    def to_xml_string
+    def to_xml
       # group the events by provider id
       events_grouped_by_provider = {}
       @event_list.each do |event|
@@ -171,7 +163,7 @@ module Bosh::AzureCloud
       events_grouped_by_provider.keys.each do |provider_id|
         xml_string = ""
         events_grouped_by_provider[provider_id].each do |event|
-          xml_string += event.to_xml_string_without_provider
+          xml_string += event.to_xml_without_provider
         end
         xml_string_grouped_by_providers += "<Provider id=\"#{provider_id}\">#{xml_string}</Provider>"
       end

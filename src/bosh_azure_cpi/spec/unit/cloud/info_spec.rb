@@ -6,7 +6,7 @@ describe Bosh::AzureCloud::Cloud do
 
   describe '#info' do
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("info").and_call_original
     end
 

@@ -6,7 +6,7 @@ describe Bosh::AzureCloud::Cloud do
 
   describe '#delete_stemcell' do
     before do
-      expect(telemetry_manager).to receive(:monitor).
+      allow(telemetry_manager).to receive(:monitor).
         with("delete_stemcell").and_call_original
     end
 
