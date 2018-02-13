@@ -135,4 +135,3 @@ describe Bosh::AzureCloud::TelemetryEvent do
     end
   end
 end
-

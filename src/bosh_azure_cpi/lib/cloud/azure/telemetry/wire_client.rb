@@ -1,23 +1,26 @@
 module Bosh::AzureCloud
+  class RetriableError < Net::HTTPError; end
+
   class WireClient
     TELEMETRY_URI_FORMAT = "http://%{endpoint}/machine?comp=telemetrydata"
-    TELEMETRY_HEADER = {'Content-Type' => 'text/xml;charset=utf-8', 'x-ms-version' => '2012-11-30', 'x-ms-agent-name' => 'WALinuxAgent'}
+    TELEMETRY_HEADER     = {'Content-Type' => 'text/xml;charset=utf-8', 'x-ms-version' => '2012-11-30', 'x-ms-agent-name' => 'WALinuxAgent'}
 
-    HEADER_LEASE = "lease {"
-    HEADER_OPTION = "option unknown-245"
-    HEADER_DNS = "option domain-name-servers"
-    HEADER_EXPIRE = "expire"
-    FOOTER_LEASE = "}"
+    RETRY_ERROR_CODES    = [408, 429, 500, 502, 503, 504]
+    SLEEP_BEFORE_RETRY   = 5
+
+    HEADER_LEASE         = "lease {"
+    HEADER_OPTION        = "option unknown-245"
+    HEADER_DNS           = "option domain-name-servers"
+    HEADER_EXPIRE        = "expire"
+    FOOTER_LEASE         = "}"
 
     LEASE_PATHS = {
       'Ubuntu' => '/var/lib/dhcp/dhclient.*.leases',
       'CentOS' => '/var/lib/dhclient/dhclient-*.leases',
-      nil      => '/var/lib/dhcp/dhclient.*.leases'
     }
 
     def initialize(logger)
       @logger = logger
-      @endpoint = get_endpoint()
     end
 
     # Post data to wireserver
@@ -25,25 +28,38 @@ module Bosh::AzureCloud
     # @param [String] event_data - Data formatted as XML string
     #
     def post_data(event_data)
-      #https://github.com/Azure/WALinuxAgent/blob/f52a9a546d9005ad15ec1af47aeaa46169374dbf/azurelinuxagent/common/protocol/wire.py#L1004
-      unless @endpoint.nil?
-        uri = URI.parse(TELEMETRY_URI_FORMAT % {:endpoint => @endpoint})
-        @logger.debug("[Telemetry] Will post event_data: #{event_data}")
+      endpoint = get_endpoint()
+
+      unless endpoint.nil?
+        uri = URI.parse(TELEMETRY_URI_FORMAT % {:endpoint => endpoint})
+        retried = false
         begin
-          # TODO: remove proxy
-          #
-          request = Net::HTTP::Post.new uri
+          request = Net::HTTP::Post.new(uri)
           request.body = event_data
           TELEMETRY_HEADER.keys.each do |key|
             request[key] = TELEMETRY_HEADER[key]
           end
-          res = Net::HTTP.new(uri.host, uri.port).start { |http| http.request request }
-          @logger.debug("[Telemetry] POST response - code: #{res.code}\nbody:#{res.body}")
-          if res.code.to_i != 200
-            #TODO: retry
+          #res = Net::HTTP.new(uri.host, uri.port).start { |http| http.request request } #TODO: test below change
+          res = Net::HTTP.new(uri.host, uri.port, nil).start { |http| http.request request }
+
+          status_code = res.code.to_i
+          if status_code == 200
+            @logger.debug("[Telemetry] Data posted")
+          elsif  RETRY_ERROR_CODES.include?(status_code)
+            raise RetriableError, "POST response - code: #{res.code}\nbody:#{res.body}"
+          else
+            raise "POST response - code: #{res.code}\nbody:#{res.body}"
+          end
+        rescue RetriableError, Net::OpenTimeout, Net::ReadTimeout, Errno::ECONNRESET => e
+          if !retried
+            retried = true
+            sleep(SLEEP_BEFORE_RETRY)
+            @logger.debug("[Telemetry] Failed to post data, retrying...")
+            retry
+          else
+            @logger.warn("[Telemetry] Failed to post data to uri #{uri}. Error: \n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
         rescue => e
-          #retry
           @logger.warn("[Telemetry] Failed to post data to uri #{uri}. Error: \n#{e.inspect}\n#{e.backtrace.join("\n")}")
         end
       else
@@ -53,28 +69,27 @@ module Bosh::AzureCloud
 
     private
 
+    # Get endpoint for different OS, only Ubuntu and CentOS are supported.
+    #
     def get_endpoint()
-      # detect os
       os = nil
+      endpoint = nil
       if File.exists?("/etc/lsb-release")
         os = "Ubuntu" if File.read("/etc/lsb-release").include?("Ubuntu")
       elsif File.exists?("/etc/centos-release")
         os = "CentOS" if File.read("/etc/centos-release").include?("CentOS")
       end
-
-      get_endpoint_from_leases_path(LEASE_PATHS[os])
+      endpoint = get_endpoint_from_leases_path(LEASE_PATHS[os]) unless os.nil?
+      endpoint
     end
 
+    # Try to discover and decode the wireserver endpoint in the specified dhcp leases path.
     #
-    # Try to discover and decode the wireserver endpoint in the
-    # specified dhcp leases path.
     # @param [String] leases_path -  The path containing dhcp lease files
     # @return [String]            -  The endpoint if available, otherwise nil
     #
     def get_endpoint_from_leases_path(leases_path)
-      #https://github.com/Azure/WALinuxAgent/blob/8c38bd6c7aa367e9d077ef454a0f96cdb1dd7bb7/azurelinuxagent/common/osutil/default.py#L806
-      #https://github.com/number5/cloud-init/blob/master/cloudinit/sources/helpers/azure.py#L248
-      lease_files = Dir[leases_path]
+      lease_files = Dir.glob(leases_path)
       lease_files.each do |file_name|
         is_lease_file = false
         endpoint = nil

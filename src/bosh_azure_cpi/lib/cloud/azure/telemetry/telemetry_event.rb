@@ -97,7 +97,7 @@ module Bosh::AzureCloud
 
     def add_param(parameter)
       if  parameter.is_a?(TelemetryEventParam)
-        @parameters.push(parameter) 
+        @parameters.push(parameter)
       else
         # do nothing and drop the param
       end

@@ -19,12 +19,12 @@ module Bosh::AzureCloud
     def monitor(operation, extras = {})
       error_raised = false
 
-      event_param_name = Bosh::AzureCloud::TelemetryEventParam.new("Name", CPI_TELEMETRY_NAME)
-      event_param_version = Bosh::AzureCloud::TelemetryEventParam.new("Version", Bosh::AzureCloud::VERSION)
-      event_param_operation = Bosh::AzureCloud::TelemetryEventParam.new("Operation", operation)
+      event_param_name              = Bosh::AzureCloud::TelemetryEventParam.new("Name", CPI_TELEMETRY_NAME)
+      event_param_version           = Bosh::AzureCloud::TelemetryEventParam.new("Version", Bosh::AzureCloud::VERSION)
+      event_param_operation         = Bosh::AzureCloud::TelemetryEventParam.new("Operation", operation)
       event_param_operation_success = Bosh::AzureCloud::TelemetryEventParam.new("OperationSuccess", true)
-      event_param_message = Bosh::AzureCloud::TelemetryEventParam.new("Message", "")
-      event_param_duration = Bosh::AzureCloud::TelemetryEventParam.new("Duration", 0)
+      event_param_message           = Bosh::AzureCloud::TelemetryEventParam.new("Message", "")
+      event_param_duration          = Bosh::AzureCloud::TelemetryEventParam.new("Duration", 0)
 
       message_value = {
         "msg" => "Successed",
