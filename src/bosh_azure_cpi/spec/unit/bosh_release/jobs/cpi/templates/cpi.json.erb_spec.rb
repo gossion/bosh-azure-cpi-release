@@ -525,3 +525,4 @@ class ERBRenderer
     erb.result(@context.get_binding)
   end
 end
+#TODO: case for enable_telemetry
