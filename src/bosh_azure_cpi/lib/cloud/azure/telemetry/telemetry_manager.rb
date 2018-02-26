@@ -11,12 +11,22 @@ module Bosh::AzureCloud
       @logger = logger
     end
 
+    def monitor(operation, extras = {})
+      if @azure_properties.fetch('enable_telemetry', false) == true && @azure_properties['environment'] != ENVIRONMENT_AZURESTACK
+        run(operation, extras)
+      else
+        yield
+      end
+    end
+
+    private
+
     # Monitor the status of a block
     # @param [Hash] extras - Extra values passed by individual function. The values will be merged to 'message' column of the event.
     #                        Example:  {"instance_type" => "Standard_D1"}
     # @return - return value of the block
     #
-    def monitor(operation, extras = {})
+    def run(operation, extras = {})
       error_raised = false
 
       event_param_name              = Bosh::AzureCloud::TelemetryEventParam.new("Name", CPI_TELEMETRY_NAME)
@@ -64,8 +74,6 @@ module Bosh::AzureCloud
         end
       end
     end
-
-    private
 
     def report_event(event)
       begin

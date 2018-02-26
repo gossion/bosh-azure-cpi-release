@@ -2,6 +2,10 @@ require 'spec_helper'
 
 describe Bosh::AzureCloud::TelemetryManager do
   describe '#monitor' do
+    #TODO: Add case
+  end
+
+  describe '#run' do
     let(:logger) { instance_double(Logger) }
     let(:telemetry_manager) { Bosh::AzureCloud::TelemetryManager.new(mock_azure_properties, logger) }
     let(:telemetry_event) { instance_double(Bosh::AzureCloud::TelemetryEvent) }
@@ -61,7 +65,7 @@ describe Bosh::AzureCloud::TelemetryManager do
                 'fake-key' => 'fake-value'})
 
         expect(
-          telemetry_manager.monitor(operation, extras) do
+          telemetry_manager.send(:run, operation, extras) do
             result
           end
         ).to eq(result)
@@ -81,7 +85,7 @@ describe Bosh::AzureCloud::TelemetryManager do
             with(hash_including('msg' => error_message))
 
           expect{
-            telemetry_manager.monitor(operation, extras) do
+            telemetry_manager.send(:run, operation, extras) do
               raise error
             end
           }.to raise_error error
@@ -100,7 +104,7 @@ describe Bosh::AzureCloud::TelemetryManager do
             with(hash_including('msg' => /#{error_message}/))
 
           expect{
-            telemetry_manager.monitor(operation, extras) do
+            telemetry_manager.send(:run, operation, extras) do
               raise error
             end
           }.to raise_error error

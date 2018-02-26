@@ -132,6 +132,10 @@ lease {
         wire_client.send(:get_endpoint_from_leases_path, lease_path)
       ).to eq("168.63.129.16") #Note: a8:3f:81:10 is translated to 168.63.129.16
     end
+
+    #TODO: more cases
+    # 1. return nil
+    # 2. all expired
   end
 
   describe "get_ip_from_lease_value" do
