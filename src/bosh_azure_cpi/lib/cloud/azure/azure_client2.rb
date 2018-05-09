@@ -1186,7 +1186,7 @@ module Bosh::AzureCloud
     #
     # @See https://docs.microsoft.com/en-us/rest/api/network/create-or-update-a-network-interface-card
     #
-    def create_network_interface(nic_params, subnet, tags, load_balancer = nil)
+    def create_network_interface(nic_params, subnet, tags, load_balancers = nil)
       url = rest_api_url(REST_API_PROVIDER_NETWORK, REST_API_NETWORK_INTERFACES, name: nic_params[:name])
       interface = {
         'name'       => nic_params[:name],
@@ -1215,14 +1215,15 @@ module Bosh::AzureCloud
         }
       }
 
-      unless load_balancer.nil?
-        interface['properties']['ipConfigurations'][0]['properties']['loadBalancerBackendAddressPools'] = [
-          {
-            'id' => load_balancer[:backend_address_pools][0][:id]
-          }
-        ]
-        interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] =
-          load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules]
+      unless load_balancers.nil?
+        loadBalancerBackendAddressPools = load_balancers.map{ |load_balancer| {'id' => load_balancer[:backend_address_pools][0][:id]} }
+        loadBalancerInboundNatRules = []
+        load_balancers.each do |load_balancer|
+          loadBalancerInboundNatRules += load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules]
+        end
+        loadBalancerInboundNatRules.uniq!
+        interface['properties']['ipConfigurations'][0]['properties']['loadBalancerBackendAddressPools'] = loadBalancerBackendAddressPools
+        interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] = loadBalancerInboundNatRules
       end
 
       http_put(url, interface)

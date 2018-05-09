@@ -299,7 +299,7 @@ module Bosh::AzureCloud
         load_balancer_name  = resource_pool['load_balancer']
         load_balancer       = @azure_client2.get_load_balancer_by_name(load_balancer_name)
         cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
-        load_balancers[network_name] = load_balancer
+        load_balancers[network_name] = [load_balancer]
       elsif !resource_pool['load_balancers'].nil?
         resource_pool['load_balancers'].each do |lb_spec|
           network_name = lb_spec['network_name']
@@ -312,7 +312,7 @@ module Bosh::AzureCloud
           if load_balancer.nil?
             cloud_error("Cannot find the load balancer `#{load_balancer_name}' in the resource group #{network.resource_group_name} for the network #{network.name}")
           end
-          load_balancers[network_name] = load_balancer
+          load_balancers[network_name] = load_balancers[network_name].nil? ? [load_balancer] : load_balancers[network_name].push(load_balancer)
         end
       end
 
