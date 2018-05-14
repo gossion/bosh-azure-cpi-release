@@ -1,7 +1,7 @@
 module Bosh::AzureCloud
   class Network
 
-    attr_reader :resource_group_name
+    attr_reader :resource_group_name, :name
 
     ##
     # Creates a new network

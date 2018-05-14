@@ -382,14 +382,61 @@ module Bosh::AzureCloud
       public_ip
     end
 
-    def get_load_balancer(resource_pool)
-      load_balancer = nil
-      unless resource_pool['load_balancer'].nil?
-        load_balancer_name = resource_pool['load_balancer']
-        load_balancer = @azure_client2.get_load_balancer_by_name(load_balancer_name)
-        cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
+    #
+    # Get load balancers for a VM
+    # @param [Hash] resource_pool
+    # @param [Array] network_names
+    # @return [Hash] load_balancers
+    #
+    # You can only specify only one of load_balancer (String) OR load_balancers (Array) in `resource_pool'
+    # 1. `load_balancer' is used for backward compatibility. It will have the only one load balancer bound to the primary NIC. Example:
+    #   resource_pool:
+    #     cloud_properties:
+    #       load_balancer: haproxylb
+    #
+    # 2. `load_balancers' is used when you need multiple load balancers, the LB  can be bound to different NIC when `network_name' is specified. Example:
+    #   resource_pool:
+    #     cloud_properties:
+    #       load_balancers:
+    #       - name: external_lb
+    #       - name: internal_lb
+    #         network_name: second_net
+    #
+    def get_load_balancers(resource_pool, network_configurator)
+      if !resource_pool['load_balancer'].nil? && !resource_pool['load_balancers'].nil?
+        cloud_error("Only one of `load_balancer' and `load_balancers' can be configured in the same resource_pool.")
       end
-      load_balancer
+
+      load_balancers      = {}
+
+      if !resource_pool['load_balancer'].nil?
+        # If `load_balancer' is specified, the load balancer will be bound to the primary network which is the 1st item in `network_configurator.networks'
+        network            = network_configurator.networks[0]
+        load_balancer_name = resource_pool['load_balancer']
+        load_balancer      = @azure_client2.get_load_balancer_by_name(load_balancer_name)
+        cloud_error("Cannot find the load balancer `#{load_balancer_name}'") if load_balancer.nil?
+        load_balancers[network.name] = [load_balancer]
+      elsif !resource_pool['load_balancers'].nil?
+        resource_pool['load_balancers'].each do |lb_spec|
+          if lb_spec['network_name'].nil?
+            network = network_configurator.networks[0]
+          else
+            network_name = lb_spec['network_name']
+            network = network_configurator.networks.find {|network| network.name == network_name}
+            cloud_error("Cannot find the network #{network_name} for load balancer `#{lb_spec}'") if network.nil?
+          end
+
+          load_balancer_name  = lb_spec['name']
+          load_balancers_for_network = @azure_client2.list_load_balancers(network.resource_group_name)
+          load_balancer = load_balancers_for_network.find { |lb| lb[:name] == load_balancer_name }
+          if load_balancer.nil?
+            cloud_error("Cannot find the load balancer `#{load_balancer_name}' in the resource group #{network.resource_group_name} for the network #{network.name}")
+          end
+          load_balancers[network.name] = load_balancers[network.name].nil? ? [load_balancer] : load_balancers[network.name].push(load_balancer)
+        end
+      end
+
+      load_balancers
     end
 
     def get_application_gateway(resource_pool)
@@ -419,6 +466,7 @@ module Bosh::AzureCloud
         @azure_client2.create_public_ip(resource_group_name, public_ip_params)
         public_ip = @azure_client2.get_public_ip_by_name(resource_group_name, vm_name)
       end
+      load_balancers     = get_load_balancers(resource_pool, network_configurator)
       networks = network_configurator.networks
       networks.each_with_index do |network, index|
         network_security_group = get_network_security_group(resource_pool, network)
@@ -438,14 +486,13 @@ module Bosh::AzureCloud
         if index == 0
           nic_params[:public_ip] = public_ip
           nic_params[:tags] = primary_nic_tags
-          nic_params[:load_balancer] = get_load_balancer(resource_pool)
           nic_params[:application_gateway] = get_application_gateway(resource_pool)
         else
           nic_params[:public_ip] = nil
           nic_params[:tags] = AZURE_TAGS
-          nic_params[:load_balancer] = nil
           nic_params[:application_gateway] = nil
         end
+        nic_params[:load_balancers] = load_balancers.fetch(network.name, nil)
         @azure_client2.create_network_interface(resource_group_name, nic_params)
         network_interfaces.push(@azure_client2.get_network_interface_by_name(resource_group_name, nic_name))
       end
