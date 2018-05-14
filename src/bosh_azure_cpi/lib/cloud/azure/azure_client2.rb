@@ -1219,11 +1219,11 @@ module Bosh::AzureCloud
         loadBalancerBackendAddressPools = load_balancers.map{ |load_balancer| {'id' => load_balancer[:backend_address_pools][0][:id]} }
         loadBalancerInboundNatRules = []
         load_balancers.each do |load_balancer|
-          loadBalancerInboundNatRules += load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules]
+          loadBalancerInboundNatRules += load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules] unless load_balancer[:frontend_ip_configurations][0][:inbound_nat_rules].nil?
         end
         loadBalancerInboundNatRules.uniq!
         interface['properties']['ipConfigurations'][0]['properties']['loadBalancerBackendAddressPools'] = loadBalancerBackendAddressPools
-        interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] = loadBalancerInboundNatRules
+        #interface['properties']['ipConfigurations'][0]['properties']['loadBalancerInboundNatRules'] = loadBalancerInboundNatRules
       end
 
       http_put(url, interface)
