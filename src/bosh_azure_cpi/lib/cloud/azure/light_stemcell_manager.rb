@@ -7,7 +7,7 @@ module Bosh::AzureCloud
       @blob_manager  = blob_manager
       @storage_account_manager = storage_account_manager
       @azure_client2 = azure_client2
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
 
       default_storage_account = @storage_account_manager.default_storage_account
       @default_storage_account_name = default_storage_account[:name]

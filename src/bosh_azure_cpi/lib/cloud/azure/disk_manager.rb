@@ -8,7 +8,7 @@ module Bosh::AzureCloud
     def initialize(azure_properties, blob_manager)
       @azure_properties = azure_properties
       @blob_manager = blob_manager
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
     end
 
     def delete_disk(storage_account_name, disk_name)

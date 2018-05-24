@@ -10,7 +10,7 @@ module Bosh::AzureCloud
       @azure_client2 = azure_client2
       @storage_account_manager = storage_account_manager
       @use_managed_disks = @azure_properties['use_managed_disks']
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
     end
 
     def create(instance_id, location, stemcell_info, resource_pool, network_configurator, env)

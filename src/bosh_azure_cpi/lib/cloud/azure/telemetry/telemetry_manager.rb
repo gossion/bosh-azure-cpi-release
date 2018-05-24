@@ -8,7 +8,9 @@ module Bosh::AzureCloud
 
     def initialize(azure_properties)
       @azure_properties = azure_properties
-      @logger = Bosh::Cpi::Logger.new(CPI_TELEMETRY_LOG_FILE)
+      @logger = Bosh::AzureCloud::RetryableLogger.new(
+                  Bosh::Cpi::Logger.new(CPI_TELEMETRY_LOG_FILE)
+                )
     end
 
     # Monitor the status of a block

@@ -15,7 +15,7 @@ module Bosh::AzureCloud
                              "#{spec.class} provided"
       end
 
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
       @azure_properties = azure_properties
       @name = name
       @ip = spec["ip"]

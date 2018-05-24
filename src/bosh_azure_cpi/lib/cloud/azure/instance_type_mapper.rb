@@ -38,7 +38,7 @@ module Bosh::AzureCloud
     ]
 
     def map(vm_resources, available_vm_sizes)
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
 
       possible_vm_sizes = find_possible_vm_sizes(vm_resources, available_vm_sizes)
       if possible_vm_sizes.empty?

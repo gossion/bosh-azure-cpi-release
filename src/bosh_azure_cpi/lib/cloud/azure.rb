@@ -38,6 +38,7 @@ require 'common/common'
 require 'bosh/cpi/registry_client'
 
 require 'cloud'
+require 'cloud/azure/logger'
 require 'cloud/azure/helpers'
 require 'cloud/azure/cloud'
 require 'cloud/azure/azure_client2'

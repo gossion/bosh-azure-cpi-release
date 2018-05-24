@@ -15,7 +15,7 @@ module Bosh::AzureCloud
     def initialize(options)
       @options = options.dup.freeze
 
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
 
       request_id = options['azure']['request_id']
       if request_id

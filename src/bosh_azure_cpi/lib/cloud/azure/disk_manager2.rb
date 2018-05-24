@@ -7,7 +7,7 @@ module Bosh::AzureCloud
 
     def initialize(azure_client2)
       @azure_client2 = azure_client2
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
     end
 
     ##

@@ -12,7 +12,7 @@ module Bosh::AzureCloud
       @azure_properties = azure_properties
       @azure_client2 = azure_client2
 
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
       @blob_client_mutex = Mutex.new
       @storage_accounts = {}
     end

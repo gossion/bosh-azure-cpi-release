@@ -29,7 +29,7 @@ module Bosh::AzureCloud
                              "`#{spec.class}' provided"
       end
 
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
       @azure_properties = azure_properties
       @networks = []
       @vip_network = nil

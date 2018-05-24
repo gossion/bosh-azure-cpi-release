@@ -8,7 +8,7 @@ module Bosh::AzureCloud
       @disk_manager  = disk_manager
       @azure_client2 = azure_client2
       @use_managed_disks = @azure_properties['use_managed_disks']
-      @logger = Bosh::Clouds::Config.logger
+      @logger = Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger)
 
       @default_storage_account_name = nil
       @default_storage_account = nil
