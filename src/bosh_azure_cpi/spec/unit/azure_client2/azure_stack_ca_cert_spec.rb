@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Bosh::AzureCloud::AzureClient2 do
-  let(:logger) { Bosh::Clouds::Config.logger }
+  let(:logger) { Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger) }
   let(:azure_stack_domain) { "fake-azure-stack-domain" }
   let(:http) { instance_double(Net::HTTP) }
 

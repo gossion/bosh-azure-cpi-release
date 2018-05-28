@@ -3,7 +3,7 @@ require 'webmock/rspec'
 
 describe Bosh::AzureCloud::WireClient do
   describe "post_data" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { Bosh::AzureCloud::WireClient.new(logger) }
     let(:event_data) { "fake-event-data" }
     let(:event_list) { instance_double(Bosh::AzureCloud::TelemetryEventList) }
@@ -89,7 +89,7 @@ describe Bosh::AzureCloud::WireClient do
   end
 
   describe "get_endpoint" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { Bosh::AzureCloud::WireClient.new(logger) }
     let(:endpoint) { "fake-endpoint" }
 
@@ -140,7 +140,7 @@ CentOS Linux release 7.4.1708 (Core)
   end
 
   describe "get_endpoint_from_leases_path" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { Bosh::AzureCloud::WireClient.new(logger) }
 
     let(:lease_path) { "fake-path" }
@@ -301,7 +301,7 @@ lease {
   end
 
   describe "get_ip_from_lease_value" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { Bosh::AzureCloud::WireClient.new(logger) }
     let(:lease_value) { "a8:3f:81:10" }
     let(:ip) { "168.63.129.16" }

@@ -21,6 +21,7 @@ module Bosh::AzureCloud
         @logger.warn(progname, &block)
       end
     end
+
     def error(progname = nil, &block)
       retryable do
         @logger.error(progname, &block)

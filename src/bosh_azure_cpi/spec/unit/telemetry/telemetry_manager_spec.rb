@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Bosh::AzureCloud::TelemetryManager do
   describe '#monitor' do
-    let(:logger) { instance_double(Bosh::Cpi::Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:telemetry_event) { instance_double(Bosh::AzureCloud::TelemetryEvent) }
 
     let(:id) { 'fake-id' }
@@ -191,7 +191,7 @@ describe Bosh::AzureCloud::TelemetryManager do
   end
 
   describe '#report_event' do
-    let(:logger) { instance_double(Bosh::Cpi::Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:telemetry_manager) { Bosh::AzureCloud::TelemetryManager.new(mock_azure_properties) }
     let(:telemetry_event) { instance_double(Bosh::AzureCloud::TelemetryEvent) }
     let(:telemetry_event_handler) { instance_double(Bosh::AzureCloud::TelemetryEventHandler) }

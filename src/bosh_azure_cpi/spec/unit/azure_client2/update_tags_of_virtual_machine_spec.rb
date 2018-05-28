@@ -5,7 +5,7 @@ WebMock.disable_net_connect!(allow_localhost: true)
 
 describe Bosh::AzureCloud::AzureClient2 do
   let(:azure_properties) { mock_azure_properties }
-  let(:logger) { Bosh::Clouds::Config.logger }
+  let(:logger) { Bosh::AzureCloud::RetryableLogger.new(Bosh::Clouds::Config.logger) }
   let(:azure_client2) { Bosh::AzureCloud::AzureClient2.new(azure_properties, logger) }
 
   let(:subscription_id) { mock_azure_properties['subscription_id'] }

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Bosh::AzureCloud::TelemetryEventHandler do
   describe "#collect_and_send_events" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { instance_double(Bosh::AzureCloud::WireClient) }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger) }
 
@@ -107,7 +107,7 @@ describe Bosh::AzureCloud::TelemetryEventHandler do
   end
 
   describe "#has_event?" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { instance_double(Bosh::AzureCloud::WireClient) }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger) }
 
@@ -140,7 +140,7 @@ describe Bosh::AzureCloud::TelemetryEventHandler do
   end
 
   describe "#collect_events" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { instance_double(Bosh::AzureCloud::WireClient) }
     let(:cpi_events_dir) { '/tmp/azure_cpi_test_collect_events' }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger, cpi_events_dir) }
@@ -206,7 +206,7 @@ describe Bosh::AzureCloud::TelemetryEventHandler do
   end
 
   describe "#send_events" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:wire_client) { instance_double(Bosh::AzureCloud::WireClient) }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger) }
 
@@ -225,7 +225,7 @@ describe Bosh::AzureCloud::TelemetryEventHandler do
   end
 
   describe "#get_last_post_timestamp" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger) }
     let(:timestamp_file) { Bosh::AzureCloud::Helpers::CPI_EVENT_HANDLER_LAST_POST_TIMESTAMP }
 
@@ -259,7 +259,7 @@ describe Bosh::AzureCloud::TelemetryEventHandler do
   end
 
   describe "#update_last_post_timestamp" do
-    let(:logger) { instance_double(Logger) }
+    let(:logger) { instance_double(Bosh::AzureCloud::RetryableLogger) }
     let(:event_handler) { Bosh::AzureCloud::TelemetryEventHandler.new(logger) }
     let(:timestamp_file) { Bosh::AzureCloud::Helpers::CPI_EVENT_HANDLER_LAST_POST_TIMESTAMP }
 
