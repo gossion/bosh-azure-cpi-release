@@ -13,6 +13,7 @@ describe Bosh::AzureCloud::VMManager do
     context 'when VM is created' do
       before do
         allow(client2).to receive(:create_virtual_machine)
+        allow(vm_manager).to receive(:get_stemcell_info).and_return(stemcell_info)
       end
 
       # Boot diagnostics
@@ -23,7 +24,7 @@ describe Bosh::AzureCloud::VMManager do
               'enable_vm_boot_diagnostics' => true
             )
           end
-          let(:vm_manager) { Bosh::AzureCloud::VMManager.new(azure_config_debug, registry_endpoint, disk_manager, disk_manager2, client2, storage_account_manager) }
+          let(:vm_manager) { Bosh::AzureCloud::VMManager.new(azure_config_debug, registry_endpoint, disk_manager, disk_manager2, client2, storage_account_manager, stemcell_manager, stemcell_manager2, light_stemcell_manager) }
 
           let(:vm_location) { location }
           let(:diag_storage_uri) { 'fake-diag-storage-uri' }
@@ -50,7 +51,7 @@ describe Bosh::AzureCloud::VMManager do
               'environment' => 'AzureStack'
             )
           end
-          let(:vm_manager) { Bosh::AzureCloud::VMManager.new(azure_config_debug, registry_endpoint, disk_manager, disk_manager2, client2, storage_account_manager) }
+          let(:vm_manager) { Bosh::AzureCloud::VMManager.new(azure_config_debug, registry_endpoint, disk_manager, disk_manager2, client2, storage_account_manager, stemcell_manager, stemcell_manager2, light_stemcell_manager) }
 
           let(:vm_location) { location }
 
@@ -92,7 +93,7 @@ describe Bosh::AzureCloud::VMManager do
                     anything,
                     nil)             # Availability set must be nil when availability is specified
 
-            vm_params = vm_manager.create(instance_id, location, stemcell_info, vm_properties, network_configurator, env)
+            vm_params = vm_manager.create(instance_id, location, stemcell_id, vm_properties, network_configurator, env)
             expect(vm_params[:zone]).to eq(availability_zone)
           end
         end
@@ -105,7 +106,7 @@ describe Bosh::AzureCloud::VMManager do
                     anything,
                     nil)             # Availability set must be nil when availability is specified
 
-            vm_params = vm_manager.create(instance_id, location, stemcell_info, vm_properties, network_configurator, env)
+            vm_params = vm_manager.create(instance_id, location, stemcell_id, vm_properties, network_configurator, env)
             expect(vm_params[:zone]).to eq(availability_zone)
           end
         end
@@ -122,7 +123,7 @@ describe Bosh::AzureCloud::VMManager do
                     anything,
                     nil)             # Availability set must be nil when availability is specified
 
-            vm_params = vm_manager.create(instance_id, location, stemcell_info, vm_properties, network_configurator, env)
+            vm_params = vm_manager.create(instance_id, location, stemcell_id, vm_properties, network_configurator, env)
             expect(vm_params[:zone]).to eq('1')
           end
         end

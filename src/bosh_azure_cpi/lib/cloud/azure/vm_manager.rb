@@ -23,13 +23,16 @@ module Bosh::AzureCloud
       @logger.info("create(#{instance_id}, #{location}, #{stemcell_id}, #{vm_properties}, ..., ...)")
 
       vm_name = instance_id.vm_name()
+      resource_group_name = instance_id.resource_group_name()
 
       # When both availability_zone and availability_set are specified, raise an error
       cloud_error("Only one of 'availability_zone' and 'availability_set' is allowed to be configured for the VM but you have configured both.") if !vm_properties['availability_zone'].nil? && !vm_properties['availability_set'].nil?
       zone = vm_properties.fetch('availability_zone', nil)
       unless zone.nil?
-        cloud_error("`#{zone}' is not a valid zone. Available zones are: #{AVAILABILITY_ZONES}") unless AVAILABILITY_ZONES.include?(zone.to_s)
+        cloud_error("'#{zone}' is not a valid zone. Available zones are: #{AVAILABILITY_ZONES}") unless AVAILABILITY_ZONES.include?(zone.to_s)
       end
+
+      check_resource_group(resource_group_name, location)
 
       # async task - prepare stemcell. Time consuming works could be:
       #   * create usage image
@@ -37,9 +40,6 @@ module Bosh::AzureCloud
       task_get_stemcell_info = Concurrent::Future.execute do
         get_stemcell_info(stemcell_id, vm_properties, location)
       end
-
-      resource_group_name = instance_id.resource_group_name()
-      check_resource_group(resource_group_name, location)
 
       # When availability_zone is specified, VM won't be in any availability set;
       # Otherwise, VM can be in an availability set specified by availability_set or env['bosh']['group']
@@ -58,16 +58,8 @@ module Bosh::AzureCloud
       # async task - prepare availability set. Time consuming works could be:
       #   * create availability set
       #   * migrate availability set
-      availability_set_params = {
-        name: availability_set_name,
-        location: location,
-        tags: AZURE_TAGS,
-        platform_update_domain_count: vm_properties['platform_update_domain_count'] || default_update_domain_count,
-        platform_fault_domain_count: vm_properties['platform_fault_domain_count'] || default_fault_domain_count,
-        managed: @use_managed_disks
-      }
       task_get_or_create_availability_set = Concurrent::Future.execute do
-        get_or_create_availability_set(resource_group_name, availability_set_params)
+        get_or_create_availability_set(resource_group_name, availability_set_name, vm_properties, location)
       end
 
       # async task - prepare storage account for diagnostics
@@ -662,8 +654,17 @@ module Bosh::AzureCloud
       @azure_config['environment'] == ENVIRONMENT_AZURESTACK ? 1 : 5
     end
 
-    def get_or_create_availability_set(resource_group_name, availability_set_params)
-      availability_set_name = availability_set_params[:name]
+    def get_or_create_availability_set(resource_group_name, availability_set_name, vm_properties, location)
+      return nil if availability_set_name.nil?
+
+      availability_set_params = {
+        name: availability_set_name,
+        location: location,
+        tags: AZURE_TAGS,
+        platform_update_domain_count: vm_properties['platform_update_domain_count'] || default_update_domain_count,
+        platform_fault_domain_count: vm_properties['platform_fault_domain_count'] || default_fault_domain_count,
+        managed: @use_managed_disks
+      }
       availability_set = nil
       flock("#{CPI_LOCK_PREFIX_AVAILABILITY_SET}-#{availability_set_name}", File::LOCK_EX) do
         availability_set = @azure_client2.get_availability_set_by_name(resource_group_name, availability_set_name)
