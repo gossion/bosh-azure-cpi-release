@@ -44,8 +44,8 @@ module Bosh::AzureCloud
     end
 
     def self.parse(id_str, default_resource_group_name)
-      id_hash, plain_id = ResObjectId.parse_with_resource_group(id_str, default_resource_group_name)
-      obj_id = new(id_hash, plain_id)
+      id_hash, plain_id, url_encode = ResObjectId.parse_with_resource_group(id_str, default_resource_group_name)
+      obj_id = new(id_hash, plain_id, url_encode)
       obj_id.validate
       obj_id
     end
@@ -90,7 +90,8 @@ module Bosh::AzureCloud
       id_hash_clone.delete(RESOURCE_GROUP_NAME_KEY) if id_hash_clone.key?(STORAGE_ACCOUNT_NAME_KEY)
       array = []
       id_hash_clone.each { |key, value| array << "#{key}:#{value}" }
-      array.sort.join(KEY_SEPERATOR)
+      id_str_raw = array.sort.join(KEY_SEPERATOR)
+      @url_encode ? URI.encode_www_form_component(id_str_raw) : id_str_raw
     end
 
     private_class_method def self._generate_data_disk_name(use_managed_disks)

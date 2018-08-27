@@ -37,8 +37,8 @@ module Bosh::AzureCloud
     # - id: the id string
     # - default_resource_group_name: the default resource group name in global config.
     def self.parse(id_str, default_resource_group_name)
-      id_hash, plain_id = ResObjectId.parse_with_resource_group(id_str, default_resource_group_name)
-      obj_id = new(id_hash, plain_id)
+      id_hash, plain_id, url_encode = ResObjectId.parse_with_resource_group(id_str, default_resource_group_name)
+      obj_id = new(id_hash, plain_id, url_encode)
       obj_id.validate
       obj_id
     end
