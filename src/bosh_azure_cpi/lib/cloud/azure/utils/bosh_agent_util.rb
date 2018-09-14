@@ -29,10 +29,8 @@ module Bosh::AzureCloud
     #   }
     # }
     def self.get_encoded_user_data(registry_endpoint, instance_id, dns, provisioning_tool, computer_name = nil)
-      user_data = get_user_data_obj(registry_endpoint, instance_id, dns, computer_name)
-
-      user_data = cloud_init_data(user_data) if provisioning_tool == 'cloud-init'
-
+      user_data_obj = get_user_data_obj(registry_endpoint, instance_id, dns, computer_name)
+      user_data = provisioning_tool == 'cloud-init' ? cloud_init_data(user_data_obj) : JSON.dump(user_data_obj)
       Base64.strict_encode64(user_data)
     end
 
