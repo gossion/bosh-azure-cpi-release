@@ -115,11 +115,11 @@ module Bosh::AzureCloud
             instance_id.to_s,
             @azure_config.ssh_public_key
           )
-          user_data_obj = Bosh::AzureCloud::BoshAgentUtil.get_user_data_obj(@registry_endpoint, instance_id.to_s, network_configurator.default_dns)
+          user_data_obj = Bosh::AzureCloud::BoshAgentUtil.get_user_data_obj(@registry_endpoint, instance_id.to_s, network_configurator.default_dns) #TODO: should config disk be replaced with cloud-init
           config_disk = @config_disk_manager.prepare_config_disk(resource_group_name, vm_name, location, meta_data_obj, user_data_obj)
           vm_params[:config_disk] = config_disk
         else
-          user_data = Bosh::AzureCloud::BoshAgentUtil.get_encoded_user_data(@registry_endpoint, instance_id.to_s, network_configurator.default_dns)
+          user_data = Bosh::AzureCloud::BoshAgentUtil.get_encoded_user_data(@registry_endpoint, instance_id.to_s, network_configurator.default_dns, stemcell_info.provisioning_tool)
           vm_params[:custom_data] = user_data
         end
       when 'windows'
@@ -143,7 +143,7 @@ module Bosh::AzureCloud
         vm_params[:windows_password] = "#{SecureRandom.uuid}#{SecureRandom.uuid.upcase}".split('').shuffle.join
         computer_name = generate_windows_computer_name
         vm_params[:computer_name] = computer_name
-        vm_params[:custom_data]   = Bosh::AzureCloud::BoshAgentUtil.get_encoded_user_data(@registry_endpoint, instance_id.to_s, network_configurator.default_dns, computer_name)
+        vm_params[:custom_data]   = Bosh::AzureCloud::BoshAgentUtil.get_encoded_user_data(@registry_endpoint, instance_id.to_s, network_configurator.default_dns, stemcell_info.provisioning_tool, computer_name)
       end
 
       vm_params[:diag_storage_uri] = diagnostics_storage_account[:storage_blob_host] unless diagnostics_storage_account.nil?

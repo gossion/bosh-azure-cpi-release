@@ -488,7 +488,7 @@ module Bosh::AzureCloud
     # *   +sku+          - String. The sku of the publisher's offer.
     # *   +version+      - String. The version of the sku.
     class StemcellInfo
-      attr_reader :uri, :metadata, :os_type, :name, :version, :image_size, :image
+      attr_reader :uri, :metadata, :os_type, :name, :version, :image_size, :image, :provisioning_tool
 
       def initialize(uri, metadata)
         @uri = uri
@@ -502,6 +502,7 @@ module Bosh::AzureCloud
                         @metadata['disk'].to_i
                       end
         @image = @metadata['image']
+        @provisioning_tool = @metadata['provisioning_tool']
       end
 
       def is_light_stemcell?

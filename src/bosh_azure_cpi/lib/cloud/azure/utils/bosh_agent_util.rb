@@ -28,9 +28,12 @@ module Bosh::AzureCloud
     #     "nameserver": ["168.63.129.16","8.8.8.8"]
     #   }
     # }
-    def self.get_encoded_user_data(registry_endpoint, instance_id, dns, computer_name = nil)
-      cloud_init_config = get_user_data_obj(registry_endpoint, instance_id, dns, computer_name)
-      Base64.strict_encode64(cloud_init_config)
+    def self.get_encoded_user_data(registry_endpoint, instance_id, dns, provisioning_tool, computer_name = nil)
+      user_data = get_user_data_obj(registry_endpoint, instance_id, dns, computer_name)
+
+      user_data = cloud_init_data(user_data) if provisioning_tool == 'cloud-init'
+
+      Base64.strict_encode64(user_data)
     end
 
     def self.get_user_data_obj(registry_endpoint, instance_id, dns, computer_name = nil)
@@ -43,7 +46,21 @@ module Bosh::AzureCloud
       end
       user_data[:dns] = { nameserver: dns } if dns
 
-      cloud_init_config = "#cloud-config
+      user_data
+    end
+
+    def self.get_meta_data_obj(instance_id, ssh_public_key)
+      user_data_obj = { instance_id: instance_id }
+      user_data_obj[:'public-keys'] = {
+        "0": {
+          "openssh-key": ssh_public_key
+        }
+      }
+      user_data_obj
+    end
+
+    def self.cloud_init_data(user_data)
+"#cloud-config
 # vim: syntax=yaml
 #
 # This is the configuration syntax that the write_files module
@@ -59,18 +76,6 @@ write_files:
     path: /var/lib/cloudinit/CustomData
     permissions: '0644'
 "
-
-      cloud_init_config
-    end
-
-    def self.get_meta_data_obj(instance_id, ssh_public_key)
-      user_data_obj = { instance_id: instance_id }
-      user_data_obj[:'public-keys'] = {
-        "0": {
-          "openssh-key": ssh_public_key
-        }
-      }
-      user_data_obj
     end
   end
 end
