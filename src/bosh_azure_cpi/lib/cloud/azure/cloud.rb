@@ -145,29 +145,63 @@ module Bosh::AzureCloud
           location_in_global_configuration = _azure_config.location
           cloud_error("The location in the global configuration '#{location_in_global_configuration}' is different from the location of the virtual network '#{location}'") if !location_in_global_configuration.nil? && location_in_global_configuration != location
 
-          instance_id, vm_params = @vm_manager.create(
-            bosh_vm_meta,
-            location,
-            vm_props,
-            network_configurator,
-            environment
-          )
+          if cloud_properties['registry_first'] == true
+            instance_id = InstanceId.create(vm_props.resource_group_name, bosh_vm_meta.agent_id)
+            registry_params = {
+              name: instance_id.vm_name,
+              ephemeral_disk: "not-nil"
+            }  
 
-          @logger.info("Created new vm '#{instance_id}'")
+            begin
+              registry_settings = _initial_agent_settings(
+                bosh_vm_meta.agent_id,
+                networks,
+                environment,
+                registry_params
+              )
+              registry.update_settings(instance_id.to_s, registry_settings)
+              instance_id.to_s
+            rescue StandardError => e
+              @logger.error(%(Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}))
+              raise e
+            end
 
-          begin
-            registry_settings = _initial_agent_settings(
-              bosh_vm_meta.agent_id,
-              networks,
-              environment,
-              vm_params
+            instance_id, vm_params = @vm_manager.create(
+              bosh_vm_meta,
+              location,
+              vm_props,
+              network_configurator,
+              environment
             )
-            registry.update_settings(instance_id.to_s, registry_settings)
+            #TODO: should delete registry...
+
+            @logger.info("Created new vm '#{instance_id}'")
             instance_id.to_s
-          rescue StandardError => e
-            @logger.error(%(Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}))
-            @vm_manager.delete(instance_id)
-            raise e
+          else
+            instance_id, vm_params = @vm_manager.create(
+              bosh_vm_meta,
+              location,
+              vm_props,
+              network_configurator,
+              environment
+            )
+
+            @logger.info("Created new vm '#{instance_id}'")
+
+            begin
+              registry_settings = _initial_agent_settings(
+                bosh_vm_meta.agent_id,
+                networks,
+                environment,
+                vm_params
+              )
+              registry.update_settings(instance_id.to_s, registry_settings)
+              instance_id.to_s
+            rescue StandardError => e
+              @logger.error(%(Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}))
+              @vm_manager.delete(instance_id)
+              raise e
+            end
           end
         end
       end
