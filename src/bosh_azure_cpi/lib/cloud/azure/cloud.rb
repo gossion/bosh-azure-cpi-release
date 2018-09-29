@@ -141,68 +141,38 @@ module Bosh::AzureCloud
           network = network_configurator.networks[0]
           vnet = @azure_client.get_virtual_network_by_name(network.resource_group_name, network.virtual_network_name)
           cloud_error("Cannot find the virtual network '#{network.virtual_network_name}' under resource group '#{network.resource_group_name}'") if vnet.nil?
-          location = vnet[:location]
-          location_in_global_configuration = _azure_config.location
-          cloud_error("The location in the global configuration '#{location_in_global_configuration}' is different from the location of the virtual network '#{location}'") if !location_in_global_configuration.nil? && location_in_global_configuration != location
-
-          if cloud_properties['registry_first'] == true
-            instance_id = InstanceId.create(vm_props.resource_group_name, bosh_vm_meta.agent_id)
-            registry_params = {
-              name: instance_id.vm_name,
-              ephemeral_disk: "not-nil"
-            }  
-
-            begin
-              registry_settings = _initial_agent_settings(
-                bosh_vm_meta.agent_id,
-                networks,
-                environment,
-                registry_params
-              )
-              registry.update_settings(instance_id.to_s, registry_settings)
-              instance_id.to_s
-            rescue StandardError => e
-              @logger.error(%(Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}))
-              raise e
-            end
-
-            instance_id, vm_params = @vm_manager.create(
-              bosh_vm_meta,
-              location,
-              vm_props,
-              network_configurator,
-              environment
-            )
-            #TODO: should delete registry...
-
-            @logger.info("Created new vm '#{instance_id}'")
-            instance_id.to_s
+          if vm_props.location.nil?
+            vm_props.location = vnet[:location]
           else
-            instance_id, vm_params = @vm_manager.create(
+            cloud_error("The location in the global configuration '#{vm_props.location}' is different from the location of the virtual network '#{vnet[:location]}'") if vm_props.location != vnet[:location]
+          end
+
+          instance_id = Bosh::AzureCloud::InstanceIdFactory.build(bosh_vm_meta, vm_props, @use_managed_disks)
+          registry_params = {
+            agent_id:                     agent_id,
+            vm_name:                      instance_id.vm_name,
+            has_dedicated_ephemeral_disk: vm_props.ephemeral_disk.use_root_disk != true,
+            network_spec:                 networks,
+            environment:                  environment
+          }  
+          registry_settings = _initial_agent_settings(registry_params)
+          registry.update_settings(instance_id.to_s, registry_settings)
+
+          begin
+            @vm_manager.create(
               bosh_vm_meta,
-              location,
               vm_props,
               network_configurator,
               environment
             )
-
-            @logger.info("Created new vm '#{instance_id}'")
-
-            begin
-              registry_settings = _initial_agent_settings(
-                bosh_vm_meta.agent_id,
-                networks,
-                environment,
-                vm_params
-              )
-              registry.update_settings(instance_id.to_s, registry_settings)
-              instance_id.to_s
-            rescue StandardError => e
-              @logger.error(%(Failed to update registry after new vm was created: #{e.inspect}\n#{e.backtrace.join("\n")}))
-              @vm_manager.delete(instance_id)
-              raise e
-            end
+          rescue StandardError => e
+            # TODO: remove - https://www.rubydoc.info/gems/bosh_cpi/2.0.6/Bosh/Cpi/RegistryClient
+            registry.delete_settings(instance_id.to_s)
+            raise e
           end
+
+          @logger.info("Created new vm '#{instance_id}'")
+          instance_id.to_s
         end
       end
     end
@@ -779,26 +749,28 @@ module Bosh::AzureCloud
     # system disk: /dev/sda
     # ephemeral disk: data disk at lun 0 or nil if use OS disk to store the ephemeral data
     #
-    # @param [String] agent_id Agent id (will be picked up by agent to
-    #   assume its identity
-    # @param [Hash] network_spec Agent network spec
-    # @param [Hash] environment
-    # @param [Hash] vm_params
+    # @param [Hash] registry_params Parameters for registry
+    # * +:agent_id+                     - String.  Agent id (will be picked up by agent), assume its identity.
+    # * +:vm_name+                      - String.  vm name.
+    # * +:has_dedicated_ephemeral_disk  - Boolean. whether the vm has a dedicated ephemeral disk to be mounted.
+    # * +:network_spec+                 - Hash.    Agent network spec.
+    # * +:environment+                  - Hash.    environment.
+    #
     # @return [Hash]
-    def _initial_agent_settings(agent_id, network_spec, environment, vm_params)
+    def _initial_agent_settings(registry_params)
       settings = {
         'vm' => {
-          'name' => vm_params[:name]
+          'name' => registry_params[:vm_name]
         },
-        'agent_id' => agent_id,
-        'networks' => _agent_network_spec(network_spec),
+        'agent_id' => registry_params[:agent_id],
+        'networks' => _agent_network_spec(registry_params[:network_spec]),
         'disks' => {
           'system' => '/dev/sda',
           'persistent' => {}
         }
       }
 
-      unless vm_params[:ephemeral_disk].nil?
+      if registry_params[:has_dedicated_ephemeral_disk]
         # Azure uses a data disk as the ephermeral disk and the lun is 0
         settings['disks']['ephemeral'] = {
           'lun'            => '0',
@@ -806,7 +778,7 @@ module Bosh::AzureCloud
         }
       end
 
-      settings['env'] = environment if environment
+      settings['env'] = registry_params[:environment] if registry_params[:environment]
       settings.merge(@config.agent.to_h)
     end
 

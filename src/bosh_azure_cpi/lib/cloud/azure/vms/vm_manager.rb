@@ -19,13 +19,14 @@ module Bosh::AzureCloud
       @logger = Bosh::Clouds::Config.logger
     end
 
-    def create(bosh_vm_meta, location, vm_props, network_configurator, env)
+    def create(bosh_vm_meta, vm_props, network_configurator, env)
       # network_configurator contains service principal in azure_config so we must not log it.
-      @logger.info("create(#{bosh_vm_meta}, #{location}, #{vm_props}, ..., ...)")
+      @logger.info("create(#{bosh_vm_meta}, #{vm_props}, ..., ...)")
 
-      instance_id = _build_instance_id(bosh_vm_meta, location, vm_props)
+      instance_id = Bosh::AzureCloud::InstanceIdFactory.build(bosh_vm_meta, vm_props, @use_managed_disks)
 
       resource_group_name = vm_props.resource_group_name
+      location = vm_props.location
       vm_name = instance_id.vm_name
 
       # When both availability_zone and availability_set are specified, raise an error

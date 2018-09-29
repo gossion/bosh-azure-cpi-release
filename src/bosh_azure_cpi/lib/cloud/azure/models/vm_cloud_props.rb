@@ -19,6 +19,8 @@ module Bosh::AzureCloud
     attr_writer :availability_set
     attr_writer :assign_dynamic_public_ip
 
+    attr_accessor :location
+
     AVAILABILITY_SET_KEY = 'availability_set'
     LOAD_BALANCER_KEY = 'load_balancer'
     RESOURCE_GROUP_NAME_KEY = 'resource_group_name'
@@ -57,6 +59,8 @@ module Bosh::AzureCloud
         ephemeral_disk_hash['size'],
         ephemeral_disk_hash['type']
       )
+
+      @location = global_azure_config.location
     end
 
     private
